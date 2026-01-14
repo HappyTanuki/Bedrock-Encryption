@@ -1,0 +1,18 @@
+file(GLOB_RECURSE TEST_SOURCES "*.cc")
+
+get_filename_component(CURRENT_FOLDER_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
+foreach(test_src ${TEST_SOURCES})
+    get_filename_component(test_name ${test_src} NAME_WE)
+    set(fullTEST_NAME "${CURRENT_FOLDER_NAME}/${test_name}")
+    add_executable(${test_name} ${test_src})
+    target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
+    if(NOT WIN32)
+        target_compile_options(${test_name} PRIVATE -maes -msse2)
+    endif()
+    message(STATUS "adding test: ${test_src}")
+    add_test(NAME ${fullTEST_NAME} COMMAND ${test_name})
+    set_tests_properties(${fullTEST_NAME} PROPERTIES WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_tests_properties(${fullTEST_NAME} PROPERTIES LABELS ${CURRENT_FOLDER_NAME})
+    add_dependencies(${test_name} copy_test_vectors)
+endforeach()
