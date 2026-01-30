@@ -4,8 +4,8 @@
 
 namespace bedrock::cipher::op_mode {
 
-BlockCipherErrorStatus CBC::Process(const std::span<const std::byte> input,
-                                    std::span<std::byte> output) {
+BlockCipherErrorStatus CBC::Process(const std::span<const std::uint8_t> input,
+                                    std::span<std::uint8_t> output) {
   std::uint32_t block_size = cipher->GetBlockSize() / 8;
   if (!cipher->IsValid() || input.size() != block_size ||
       output.size() != block_size) {

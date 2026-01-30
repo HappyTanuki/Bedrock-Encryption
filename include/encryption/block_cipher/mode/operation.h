@@ -14,30 +14,31 @@ enum class CipherMode { Encrypt, Decrypt };
 class OperationMode : public Validatable {
  public:
   OperationMode(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-                const std::span<const std::byte> IV = {})
+                const std::span<const std::uint8_t> IV = {})
       : cipher(std::move(algorithm)), prev_vector(IV.begin(), IV.end()) {
     buffer.resize(IV.size());
   }
   virtual ~OperationMode() override;
 
-  virtual BlockCipherErrorStatus Process(const std::span<const std::byte> input,
-                                         std::span<std::byte> output) = 0;
+  virtual BlockCipherErrorStatus Process(
+      const std::span<const std::uint8_t> input,
+      std::span<std::uint8_t> output) = 0;
 
   OperationMode& operator<<(const CipherMode& _mode) {
     this->mode = _mode;
     return *this;
   }
 
-  void SetIV(const std::span<const std::byte> IV) {
-    prev_vector = std::vector<std::byte>(IV.begin(), IV.end());
+  void SetIV(const std::span<const std::uint8_t> IV) {
+    prev_vector = std::vector<std::uint8_t>(IV.begin(), IV.end());
     buffer.resize(IV.size());
   }
 
  protected:
   std::unique_ptr<BlockCipherAlgorithm> cipher;
 
-  std::vector<std::byte> prev_vector;
-  std::vector<std::byte> buffer;
+  std::vector<std::uint8_t> prev_vector;
+  std::vector<std::uint8_t> buffer;
 
   CipherMode mode = CipherMode::Encrypt;
 };

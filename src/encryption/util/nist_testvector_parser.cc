@@ -5,7 +5,7 @@
 
 #include "encryption/util/helper.h"
 
-namespace bedrock::cipher::util::NISTTestVectorParser {
+namespace bedrock::util::NISTTestVectorParser {
 
 ReturnStatusCode ParseHashVector(const std::filesystem::path& file_path,
                                  std::vector<NISTTestVariables>& test_vectors) {
@@ -373,11 +373,11 @@ ReturnStatusCode ParseHashDRBGVector(
   std::regex generate("\\*\\*\\sGENERATE.*:");
 
   std::string hashALGORITHM_name;
-  std::vector<std::byte> entropy_input = {};
-  std::vector<std::byte> nonce = {};
-  std::vector<std::byte> personalization_string = {};
-  std::vector<std::byte> additional_input = {};
-  std::vector<std::byte> returned_bits = {};
+  std::vector<std::uint8_t> entropy_input = {};
+  std::vector<std::uint8_t> nonce = {};
+  std::vector<std::uint8_t> personalization_string = {};
+  std::vector<std::uint8_t> additional_input = {};
+  std::vector<std::uint8_t> returned_bits = {};
   bool prediction_resistance_flag = false;
 
   NISTTestDRBGHashState hash_state;
@@ -504,4 +504,4 @@ ReturnStatusCode ParseHashDRBGVector(
   return ReturnStatusCode::kSuccess;
 }
 
-}  // namespace bedrock::cipher::util::NISTTestVectorParser
+}  // namespace bedrock::util::NISTTestVectorParser

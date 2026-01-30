@@ -5,7 +5,7 @@
 namespace bedrock::cipher::op_mode {
 
 CTR::CTR(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-         const std::span<const std::byte> IV, std::uint32_t m_bits)
+         const std::span<const std::uint8_t> IV, std::uint32_t m_bits)
     : OperationMode(std::move(algorithm), IV), m(m_bits) {
   std::uint32_t block_bits = cipher->GetBlockSize();
   std::uint32_t block_bytes = block_bits / 8;
@@ -19,17 +19,17 @@ CTR::CTR(std::unique_ptr<BlockCipherAlgorithm> algorithm,
 
   for (std::uint32_t i = block_bytes - 1; i > block_bytes - counter_bytes;
        i--) {
-    this->prev_vector[i] = static_cast<std::byte>(0x00);
+    this->prev_vector[i] = static_cast<std::uint8_t>(0x00);
     m_bits -= 8;
   }
   this->prev_vector[block_bytes - counter_bytes] &=
-      static_cast<std::byte>(0xFF << m_bits);
+      static_cast<std::uint8_t>(0xFF << m_bits);
 
   valid = true;
 }
 
-BlockCipherErrorStatus CTR::Process(const std::span<const std::byte> input,
-                                    std::span<std::byte> output) {
+BlockCipherErrorStatus CTR::Process(const std::span<const std::uint8_t> input,
+                                    std::span<std::uint8_t> output) {
   std::uint32_t block_size = cipher->GetBlockSize() / 8;
   if (!IsValid() || !cipher->IsValid() || input.size() != block_size ||
       output.size() != block_size) {
@@ -37,10 +37,10 @@ BlockCipherErrorStatus CTR::Process(const std::span<const std::byte> input,
   }
 
   this->cipher->Encrypt(this->prev_vector, buffer);
-  bedrock::cipher::util::StandardIncrement(this->prev_vector, m);
+  bedrock::util::StandardIncrement(this->prev_vector, m);
 
   std::copy(buffer.begin(), buffer.end(), output.begin());
-  bedrock::cipher::util::XorInplace(output, input);
+  bedrock::util::XorInplace(output, input);
 
   return BlockCipherErrorStatus::kSuccess;
 }

@@ -6,15 +6,6 @@
 
 namespace NISTTestVectorParser = bedrock::util::NISTTestVectorParser;
 
-#define TEST_TYPE "complex"
-
-#define KEY_BIT 128
-#define ALGORITHM bedrock::cipher::AES_CBC
-#define TESTDIRECTORY_PREFIX "./test/test_vector/"
-#define TESTDIRECTORY "aesmct_intermediate/"
-#define TEST_NAME "CBCMCT128"
-#define TESTFILEEXT ".txt"
-
 int main() {
   std::vector<NISTTestVectorParser::NISTTestMonteStage> encrypt_test_vectors;
   if (NISTTestVectorParser::ParseCipherMonteVector(

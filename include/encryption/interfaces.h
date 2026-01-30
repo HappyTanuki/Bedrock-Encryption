@@ -15,10 +15,12 @@ class BlockCipherAlgorithm : public Validatable {
   BlockCipherAlgorithm();
   virtual ~BlockCipherAlgorithm() override;
 
-  virtual BlockCipherErrorStatus Encrypt(const std::span<const std::byte> block,
-                                         std::span<std::byte> out) = 0;
-  virtual BlockCipherErrorStatus Decrypt(const std::span<const std::byte> block,
-                                         std::span<std::byte> out) = 0;
+  virtual BlockCipherErrorStatus Encrypt(
+      const std::span<const std::uint8_t> block,
+      std::span<std::uint8_t> out) = 0;
+  virtual BlockCipherErrorStatus Decrypt(
+      const std::span<const std::uint8_t> block,
+      std::span<std::uint8_t> out) = 0;
 
   virtual std::uint32_t GetKeySize() = 0;
   virtual std::uint32_t GetBlockSize() = 0;

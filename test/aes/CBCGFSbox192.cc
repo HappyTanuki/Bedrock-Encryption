@@ -4,7 +4,7 @@
 #include "encryption/util/helper.h"
 #include "encryption/util/nist_testvector_parser.h"
 
-namespace NISTTestVectorParser = bedrock::cipher::util::NISTTestVectorParser;
+namespace NISTTestVectorParser = bedrock::util::NISTTestVectorParser;
 
 #define KEY_BIT 192
 #define ALGORITHM bedrock::cipher::AES_CBC
@@ -43,31 +43,28 @@ int main() {
 
   std::cout << TEST_NAME " Encryption:" << std::endl;
   for (auto item : encrypt_test_vectors) {
-    std::array<std::byte, KEY_BIT / 8> key;
-    std::array<std::byte, 16> IV;
+    std::array<std::uint8_t, KEY_BIT / 8> key;
+    std::array<std::uint8_t, 16> IV;
 
     std::copy(item.binary["KEY"].begin(), item.binary["KEY"].end(),
               key.begin());
     std::copy(item.binary["IV"].begin(), item.binary["IV"].end(), IV.begin());
 
     ALGORITHM cipher(key, IV);
-    std::vector<std::byte> input_block(16);
-    std::vector<std::byte> output_block(16);
-    std::vector<std::byte> expected_block(16);
-    std::vector<std::byte> result;
+    std::vector<std::uint8_t> input_block(16);
+    std::vector<std::uint8_t> output_block(16);
+    std::vector<std::uint8_t> expected_block(16);
+    std::vector<std::uint8_t> result;
     result.reserve(item.binary["CIPHERTEXT"].size());
 
     cipher << bedrock::cipher::op_mode::CipherMode::Encrypt;
 
-    std::cout << "KEY: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["KEY"])
+    std::cout << "KEY: " << bedrock::util::BytesToHexStr(item.binary["KEY"])
               << "\n";
-    std::cout << "IV: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["IV"])
+    std::cout << "IV: " << bedrock::util::BytesToHexStr(item.binary["IV"])
               << "\n";
     std::cout << "PLAINTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["PLAINTEXT"])
-              << "\n";
+              << bedrock::util::BytesToHexStr(item.binary["PLAINTEXT"]) << "\n";
 
     for (std::uint32_t i = 0;; i++) {
       if (i * 16 + 16 > item.binary["PLAINTEXT"].size()) {
@@ -84,18 +81,18 @@ int main() {
 
       std::copy(output_block.begin(), output_block.end(),
                 std::back_inserter(result));
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "PLAINTEXT block: "
-                << bedrock::cipher::util::BytesToHexStr(input_block) << "\n";
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+                << bedrock::util::BytesToHexStr(input_block) << "\n";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "expected block: "
-                << bedrock::cipher::util::BytesToHexStr(expected_block) << "\n";
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+                << bedrock::util::BytesToHexStr(expected_block) << "\n";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "CIPHERTEXT block: "
-                << bedrock::cipher::util::BytesToHexStr(output_block) << "\n";
+                << bedrock::util::BytesToHexStr(output_block) << "\n";
       if (output_block != expected_block) {
         std::cout << "\t" << "Mismatch" << std::endl;
         return -1;
@@ -103,10 +100,9 @@ int main() {
     }
 
     std::cout << "EXPECTED: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["CIPHERTEXT"])
+              << bedrock::util::BytesToHexStr(item.binary["CIPHERTEXT"])
               << "\n";
-    std::cout << "CIPHERTEXT: " << bedrock::cipher::util::BytesToHexStr(result)
-              << "\n";
+    std::cout << "CIPHERTEXT: " << bedrock::util::BytesToHexStr(result) << "\n";
 
     if (result != item.binary["CIPHERTEXT"]) {
       std::cout << "Mismatch" << std::endl;
@@ -115,30 +111,28 @@ int main() {
   }
   std::cout << TEST_NAME " Decryption:" << std::endl;
   for (auto item : decrypt_test_vectors) {
-    std::array<std::byte, KEY_BIT / 8> key;
-    std::array<std::byte, 16> IV;
+    std::array<std::uint8_t, KEY_BIT / 8> key;
+    std::array<std::uint8_t, 16> IV;
 
     std::copy(item.binary["KEY"].begin(), item.binary["KEY"].end(),
               key.begin());
     std::copy(item.binary["IV"].begin(), item.binary["IV"].end(), IV.begin());
 
     ALGORITHM cipher(key, IV);
-    std::vector<std::byte> input_block(16);
-    std::vector<std::byte> output_block(16);
-    std::vector<std::byte> expected_block(16);
-    std::vector<std::byte> result;
+    std::vector<std::uint8_t> input_block(16);
+    std::vector<std::uint8_t> output_block(16);
+    std::vector<std::uint8_t> expected_block(16);
+    std::vector<std::uint8_t> result;
     result.reserve(item.binary["PLAINTEXT"].size());
 
     cipher << bedrock::cipher::op_mode::CipherMode::Decrypt;
 
-    std::cout << "KEY: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["KEY"])
+    std::cout << "KEY: " << bedrock::util::BytesToHexStr(item.binary["KEY"])
               << "\n";
-    std::cout << "IV: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["IV"])
+    std::cout << "IV: " << bedrock::util::BytesToHexStr(item.binary["IV"])
               << "\n";
     std::cout << "CIPHERTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["CIPHERTEXT"])
+              << bedrock::util::BytesToHexStr(item.binary["CIPHERTEXT"])
               << "\n";
 
     for (std::uint32_t i = 0;; i++) {
@@ -156,18 +150,18 @@ int main() {
 
       std::copy(output_block.begin(), output_block.end(),
                 std::back_inserter(result));
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "CIPHERTEXT block: "
-                << bedrock::cipher::util::BytesToHexStr(input_block) << "\n";
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+                << bedrock::util::BytesToHexStr(input_block) << "\n";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "expected block: "
-                << bedrock::cipher::util::BytesToHexStr(expected_block) << "\n";
-      std::cout << "\t" << i + 1
-                << bedrock::cipher::util::GetEnglishNumberSufix(i + 1) << " ";
+                << bedrock::util::BytesToHexStr(expected_block) << "\n";
+      std::cout << "\t" << i + 1 << bedrock::util::GetEnglishNumberSufix(i + 1)
+                << " ";
       std::cout << "PLAINTEXT block: "
-                << bedrock::cipher::util::BytesToHexStr(output_block) << "\n";
+                << bedrock::util::BytesToHexStr(output_block) << "\n";
       if (output_block != expected_block) {
         std::cout << "\t" << "Mismatch" << std::endl;
         return -1;
@@ -175,10 +169,8 @@ int main() {
     }
 
     std::cout << "EXPECTED: "
-              << bedrock::cipher::util::BytesToHexStr(item.binary["PLAINTEXT"])
-              << "\n";
-    std::cout << "PLAINTEXT: " << bedrock::cipher::util::BytesToHexStr(result)
-              << "\n";
+              << bedrock::util::BytesToHexStr(item.binary["PLAINTEXT"]) << "\n";
+    std::cout << "PLAINTEXT: " << bedrock::util::BytesToHexStr(result) << "\n";
 
     if (result != item.binary["PLAINTEXT"]) {
       std::cout << "Mismatch" << std::endl;

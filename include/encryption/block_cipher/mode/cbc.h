@@ -13,8 +13,8 @@ class CBC : public OperationMode {
  public:
   using OperationMode::OperationMode;
 
-  BlockCipherErrorStatus Process(const std::span<const std::byte> input,
-                                 std::span<std::byte> output) final override;
+  BlockCipherErrorStatus Process(const std::span<const std::uint8_t> input,
+                                 std::span<std::uint8_t> output) final override;
 
   bool IsValid() const final override { return true; }
 };

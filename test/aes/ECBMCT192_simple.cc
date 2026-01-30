@@ -4,7 +4,7 @@
 #include "encryption/util/helper.h"
 #include "encryption/util/nist_testvector_parser.h"
 
-namespace NISTTestVectorParser = bedrock::cipher::util::NISTTestVectorParser;
+namespace NISTTestVectorParser = bedrock::util::NISTTestVectorParser;
 
 #define TEST_TYPE "simple"
 
@@ -43,16 +43,16 @@ int main() {
     return -1;
   }
 
-  std::vector<std::byte> input_block;
-  std::vector<std::byte> output_block;
+  std::vector<std::uint8_t> input_block;
+  std::vector<std::uint8_t> output_block;
   input_block.resize(16);
   output_block.resize(16);
 
   std::cout << TEST_NAME " " TEST_TYPE " Encryption:" << std::endl;
   for (auto item : encrypt_test_vectors) {
-    std::vector<std::byte> prev_result;
+    std::vector<std::uint8_t> prev_result;
     prev_result.resize(item.variable.binary["PLAINTEXT"].size());
-    std::array<std::byte, KEY_BIT / 8> key;
+    std::array<std::uint8_t, KEY_BIT / 8> key;
     std::copy(item.variable.binary["KEY"].begin(),
               item.variable.binary["KEY"].end(), key.begin());
 
@@ -77,16 +77,14 @@ int main() {
     std::cout << "stage: " << "\n";
 
     std::cout << "KEY: "
-              << bedrock::cipher::util::BytesToHexStr(
-                     item.variable.binary["KEY"])
+              << bedrock::util::BytesToHexStr(item.variable.binary["KEY"])
               << "\n";
     std::cout << "PLAINTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(
-                     item.variable.binary["PLAINTEXT"])
+              << bedrock::util::BytesToHexStr(item.variable.binary["PLAINTEXT"])
               << "\n";
 
     for (std::uint32_t i = 0; i < 1000; i++) {
-      std::vector<std::byte> result;
+      std::vector<std::uint8_t> result;
       result.reserve(item.variable.binary["PLAINTEXT"].size());
       for (std::uint32_t j = 0;; j++) {
         if (j * 16 + 16 > prev_result.size()) {
@@ -107,11 +105,11 @@ int main() {
 
         std::cout << "\t" << "INTERMEDIATE COUNT: " << i << "\n";
         std::cout << "\t" << "Intermediate expected CIPHERTEXT: "
-                  << bedrock::cipher::util::BytesToHexStr(
+                  << bedrock::util::BytesToHexStr(
                          sample.variable.binary["Intermediate Vaue CIPHERTEXT"])
                   << "\n";
         std::cout << "\t" << "Intermediate Vaue CIPHERTEXT: "
-                  << bedrock::cipher::util::BytesToHexStr(result) << "\n";
+                  << bedrock::util::BytesToHexStr(result) << "\n";
 
         if (result != sample.variable.binary["Intermediate Vaue CIPHERTEXT"]) {
           std::cout << "Intermediate Vaue Mismatch" << std::endl;
@@ -122,11 +120,11 @@ int main() {
     }
 
     std::cout << "EXPECTED CIPHERTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(
+              << bedrock::util::BytesToHexStr(
                      item.variable.binary["CIPHERTEXT"])
               << "\n";
-    std::cout << "CIPHERTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(prev_result) << "\n";
+    std::cout << "CIPHERTEXT: " << bedrock::util::BytesToHexStr(prev_result)
+              << "\n";
 
     if (prev_result != item.variable.binary["CIPHERTEXT"]) {
       std::cout << "Mismatch" << std::endl;
@@ -135,9 +133,9 @@ int main() {
   }
   std::cout << TEST_NAME " " TEST_TYPE " Decryption:" << std::endl;
   for (auto item : decrypt_test_vectors) {
-    std::vector<std::byte> prev_result;
+    std::vector<std::uint8_t> prev_result;
     prev_result.resize(item.variable.binary["CIPHERTEXT"].size());
-    std::array<std::byte, KEY_BIT / 8> key;
+    std::array<std::uint8_t, KEY_BIT / 8> key;
     std::copy(item.variable.binary["KEY"].begin(),
               item.variable.binary["KEY"].end(), key.begin());
 
@@ -162,16 +160,15 @@ int main() {
     std::cout << "stage: " << "\n";
 
     std::cout << "KEY: "
-              << bedrock::cipher::util::BytesToHexStr(
-                     item.variable.binary["KEY"])
+              << bedrock::util::BytesToHexStr(item.variable.binary["KEY"])
               << "\n";
     std::cout << "CIPHERTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(
+              << bedrock::util::BytesToHexStr(
                      item.variable.binary["CIPHERTEXT"])
               << "\n";
 
     for (std::uint32_t i = 0; i < 1000; i++) {
-      std::vector<std::byte> result;
+      std::vector<std::uint8_t> result;
       result.reserve(item.variable.binary["CIPHERTEXT"].size());
       for (std::uint32_t j = 0;; j++) {
         if (j * 16 + 16 > prev_result.size()) {
@@ -192,11 +189,11 @@ int main() {
 
         std::cout << "\t" << "INTERMEDIATE COUNT: " << i << "\n";
         std::cout << "\t" << "Intermediate expected PLAINTEXT: "
-                  << bedrock::cipher::util::BytesToHexStr(
+                  << bedrock::util::BytesToHexStr(
                          sample.variable.binary["Intermediate Vaue PLAINTEXT"])
                   << "\n";
         std::cout << "\t" << "Intermediate Vaue PLAINTEXT: "
-                  << bedrock::cipher::util::BytesToHexStr(result) << "\n";
+                  << bedrock::util::BytesToHexStr(result) << "\n";
 
         if (result != sample.variable.binary["Intermediate Vaue PLAINTEXT"]) {
           std::cout << "Intermediate Vaue Mismatch" << std::endl;
@@ -207,11 +204,10 @@ int main() {
     }
 
     std::cout << "EXPECTED PLAINTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(
-                     item.variable.binary["PLAINTEXT"])
+              << bedrock::util::BytesToHexStr(item.variable.binary["PLAINTEXT"])
               << "\n";
-    std::cout << "PLAINTEXT: "
-              << bedrock::cipher::util::BytesToHexStr(prev_result) << "\n";
+    std::cout << "PLAINTEXT: " << bedrock::util::BytesToHexStr(prev_result)
+              << "\n";
 
     if (prev_result != item.variable.binary["PLAINTEXT"]) {
       std::cout << "Mismatch" << std::endl;

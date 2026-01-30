@@ -1,163 +1,149 @@
 #include "encryption/util/helper.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <iomanip>
 #include <sstream>
 #include <vector>
 
-namespace bedrock::cipher::util {
+#include "common/intrinsics.h"
 
-std::vector<std::byte> StrToBytes(const std::string& s) {
-  std::vector<std::byte> result(s.size());
+namespace bedrock::util {
+
+static bool Sse2Enabled() {
+  static bedrock::intrinsic::Register reg =
+      bedrock::intrinsic::GetCPUFeatures();
+  static bool enabled = bedrock::intrinsic::IsCpuEnabledFeature(reg, "SSE2");
+  return enabled;
+}
+
+std::vector<std::uint8_t> StrToBytes(const std::string& s) {
+  std::vector<std::uint8_t> result(s.size());
   std::memcpy(result.data(), s.data(), s.size());
   return result;
 }
 
-std::string BytesToStr(const std::vector<std::byte>& bytes) {
-  std::ostringstream osstream;
-  for (auto b : bytes) {
-    osstream << static_cast<char>(b);
-  }
-  return osstream.str();
-}
-
-std::string BytesToHexStr(const std::span<const std::byte> bytes) {
+std::string BytesToHexStr(const std::span<const std::uint8_t> bytes) {
   std::ostringstream osstream;
 
   for (auto b : bytes) {
     osstream << std::uppercase << std::setw(2) << std::setfill('0') << std::hex
-             << std::to_integer<int>(b);
+             << static_cast<int>(b);
   }
 
   return osstream.str();
 }
 
-std::vector<std::byte> HexStrToBytes(const std::string& hex) {
-  std::vector<std::byte> bytes;
+std::vector<std::uint8_t> HexStrToBytes(const std::string& hex) {
+  std::vector<std::uint8_t> bytes;
   bytes.reserve(hex.size() / 2);
 
   for (size_t i = 0; i < hex.size(); i += 2) {
-    std::byte byte =
-        static_cast<std::byte>(std::stoul(hex.substr(i, 2), nullptr, 16));
+    std::uint8_t byte =
+        static_cast<std::uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16));
     bytes.push_back(byte);
   }
 
   return bytes;
 }
 
-std::vector<std::byte> XorBytes(const std::span<const std::byte> a,
-                                const std::span<const std::byte> b) {
-  std::vector<std::byte> result((std::max)(a.size(), b.size()));
+std::vector<std::uint8_t> XorBytes(const std::span<const std::uint8_t> a,
+                                   const std::span<const std::uint8_t> b) {
+  const std::size_t max_size = (std::max)(a.size(), b.size());
+  const std::size_t min_size = (std::min)(a.size(), b.size());
+  std::vector<std::uint8_t> result(max_size);
+  std::size_t offset = 0;
 
-  std::size_t i = 0;
-  for (i = 0; i < (std::min)(a.size(), b.size()); ++i) {
-    result[i] = static_cast<std::byte>(static_cast<std::uint8_t>(a[i]) ^
-                                       static_cast<std::uint8_t>(b[i]));
-  }
   if (a.size() >= b.size()) {
-    for (i = i; i < result.size(); ++i) {
-      result[i] =
-          static_cast<std::byte>(static_cast<std::uint8_t>(a[i]) ^ 0x00);
+    std::copy(a.begin(), a.end(), result.begin());
+  } else {
+    std::copy(b.begin(), b.end(), result.begin());
+  }
+
+  if (Sse2Enabled()) {
+    for (; offset + 16 <= min_size; offset += 16) {
+      __m128i _mm_a =
+          _mm_loadu_si128(reinterpret_cast<const __m128i*>(a.data() + offset));
+      __m128i _mm_b =
+          _mm_loadu_si128(reinterpret_cast<const __m128i*>(b.data() + offset));
+      __m128i _mm_result = _mm_xor_si128(_mm_a, _mm_b);
+
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(result.data() + offset),
+                       _mm_result);
+    }
+  }
+
+  for (; offset < min_size; ++offset) {
+    result[offset] =
+        static_cast<std::uint8_t>(static_cast<std::uint8_t>(a[offset]) ^
+                                  static_cast<std::uint8_t>(b[offset]));
+  }
+
+  return result;
+}
+
+void XorInplace(std::span<std::uint8_t> a,
+                const std::span<const std::uint8_t> b) {
+  const std::size_t min_size = (std::min)(a.size(), b.size());
+  std::size_t offset = 0;
+
+  if (Sse2Enabled()) {
+    for (; offset + 16 <= min_size; offset += 16) {
+      __m128i _mm_a =
+          _mm_loadu_si128(reinterpret_cast<const __m128i*>(a.data() + offset));
+      __m128i _mm_b =
+          _mm_loadu_si128(reinterpret_cast<const __m128i*>(b.data() + offset));
+      __m128i _mm_result = _mm_xor_si128(_mm_a, _mm_b);
+
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(a.data() + offset),
+                       _mm_result);
+    }
+  }
+
+  for (; offset < min_size; ++offset) {
+    a[offset] = static_cast<std::uint8_t>(static_cast<std::uint8_t>(a[offset]) ^
+                                          static_cast<std::uint8_t>(b[offset]));
+  }
+}
+
+void StandardIncrement(std::span<std::uint8_t> bytes, const std::size_t m) {
+  std::size_t counter_bytes = (m + 7) / 8;
+  std::size_t offset_bits = counter_bytes * 8 - m;
+  std::size_t base = bytes.size() - counter_bytes;
+
+  if (bytes[bytes.size() - 1] + 1 < bytes[bytes.size() - 1]) {
+    // 캐리 발생
+    bytes[bytes.size() - 1] = static_cast<std::uint8_t>(
+        bytes[bytes.size() - 1] & (0xFF >> (8 - offset_bits)));
+    for (std::size_t i = bytes.size() - 2; i > 0; i--) {
+      if (bytes[i] != 0xFF) {
+        bytes[i] = static_cast<std::uint8_t>(bytes[i]) + 1;
+        break;
+      } else {
+        bytes[i] = static_cast<std::uint8_t>(0x00);
+      }
     }
   } else {
-    result[i] = static_cast<std::byte>(0x00 ^ static_cast<std::uint8_t>(b[i]));
+    bytes[bytes.size() - 1] =
+        static_cast<std::uint8_t>(bytes[bytes.size() - 1] + 1);
   }
-  return result;
-}
-
-void XorInplace(std::span<std::byte> a, const std::span<const std::byte> b) {
-  std::uint32_t size = (std::max)(a.size(), b.size());
-
-  std::size_t i = 0;
-  for (i = 0; i < (std::min)(a.size(), b.size()); ++i) {
-    a[i] = static_cast<std::byte>(static_cast<std::uint8_t>(a[i]) ^
-                                  static_cast<std::uint8_t>(b[i]));
-  }
-  if (a.size() >= b.size()) {
-    for (i = i; i < size; ++i) {
-      a[i] = static_cast<std::byte>(static_cast<std::uint8_t>(a[i]) ^ 0x00);
-    }
-  } else {
-    a[i] = static_cast<std::byte>(0x00 ^ static_cast<std::uint8_t>(b[i]));
-  }
-}
-
-void StandardIncrement(std::span<std::byte> bytes, const int m) {
-  std::uint32_t counter_bytes = (m + 7) / 8;
-  bool carry = false;
-
-  int i = bytes.size() - 1;
-  do {
-    if (bytes[i] != static_cast<std::byte>(0xFF)) {
-      std::uint8_t t = std::to_integer<std::uint8_t>(bytes[i]);
-      t += 1;
-      bytes[i] = static_cast<std::byte>(t);
-    } else {
-      bytes[i] = static_cast<std::byte>(0x00);
-      carry = true;
-    }
-  } while (carry && --i > counter_bytes);
-}
-
-std::vector<std::byte> UInt8ToBytesVector(uint64_t value) {
-  std::vector<std::byte> result(1);
-  result[0] = static_cast<std::byte>(value & 0xFF);
-  return result;
-}
-
-std::vector<std::byte> UInt32ToBytesVector(uint64_t value) {
-  std::vector<std::byte> result(4);
-  for (size_t i = 0; i < 4; ++i) {
-    result[3 - i] = static_cast<std::byte>(value & 0xFF);
-    value >>= 8;
-  }
-  return result;
-}
-
-std::vector<std::byte> Leftmost(const std::vector<std::byte>& value,
-                                const std::uint64_t& size) {
-  std::vector<std::byte> result;
-  size_t byteLen = (std::min)((size + 7) / 8, value.size());
-  result.resize(byteLen);
-  std::memcpy(result.data(), value.data(), byteLen);
-
-  std::uint32_t extraBits = size % 8;
-  if (extraBits != 0) {
-    // 예: extraBits = 3 → 상위 3비트만 남기고 나머지는 0으로
-    uint8_t mask = static_cast<uint8_t>(0xFF << (8 - extraBits));
-    result.back() &= static_cast<std::byte>(mask);
-  }
-
-  return result;
-}
-
-// incomplete, only for size multiple of 8
-std::vector<std::byte> Rightmost(const std::vector<std::byte>& value,
-                                 const std::uint64_t& size) {
-  std::vector<std::byte> result;
-  result.resize(size / 8);
-
-  std::uint32_t offset = std::max<size_t>(value.size() - size / 8, 0);
-
-  std::memcpy(result.data(), value.data() + offset, size / 8);
-
-  return result;
 }
 
 std::string GetEnglishNumberSufix(std::uint64_t number) {
-  std::string result;
-  if (number % 10 == 1 && number != 11) {
-    result = "st";
-  } else if (number % 10 == 2 && number != 12) {
-    result = "nd";
-  } else if (number % 10 == 3 && number != 13) {
-    result = "rd";
-  } else {
-    result = "th";
-  }
+  auto m100 = number % 100;
+  if (m100 >= 11 && m100 <= 13) return "th";
 
-  return result;
+  switch (number % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
 }
 
-}  // namespace bedrock::cipher::util
+}  // namespace bedrock::util

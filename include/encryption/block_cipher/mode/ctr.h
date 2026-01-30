@@ -10,12 +10,12 @@ class CTR : public OperationMode {
   using OperationMode::OperationMode;
 
   CTR(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-      const std::span<const std::byte> IV, std::uint32_t m_bits = 64);
+      const std::span<const std::uint8_t> IV, std::uint32_t m_bits = 64);
 
-  BlockCipherErrorStatus Process(const std::span<const std::byte> input,
-                                 std::span<std::byte> output) final override;
+  BlockCipherErrorStatus Process(const std::span<const std::uint8_t> input,
+                                 std::span<std::uint8_t> output) override;
 
-  bool IsValid() const final override { return valid; }
+  bool IsValid() const override { return valid; }
 
  private:
   std::uint32_t m;

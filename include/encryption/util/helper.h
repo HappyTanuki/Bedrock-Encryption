@@ -8,62 +8,54 @@
 #include <string>
 #include <vector>
 
-namespace bedrock::cipher::util {
+namespace bedrock::util {
 
-std::vector<std::byte> StrToBytes(const std::string& s);
-std::string BytesToStr(const std::vector<std::byte>& bytes);
+std::vector<std::uint8_t> StrToBytes(const std::string& s);
 
-std::string BytesToHexStr(const std::span<const std::byte> bytes);
+std::string BytesToHexStr(const std::span<const std::uint8_t> bytes);
 
-std::vector<std::byte> HexStrToBytes(const std::string& hex);
+std::vector<std::uint8_t> HexStrToBytes(const std::string& hex);
 template <std::uint32_t Size>
-std::array<std::byte, Size> HexStrToBytes(const std::string& hex);
+std::array<std::uint8_t, Size> HexStrToBytes(const std::string& hex);
 
-std::vector<std::byte> XorBytes(const std::span<const std::byte> a,
-                                const std::span<const std::byte> b);
-void XorInplace(std::span<std::byte> a, const std::span<const std::byte> b);
+std::vector<std::uint8_t> XorBytes(const std::span<const std::uint8_t> a,
+                                   const std::span<const std::uint8_t> b);
+void XorInplace(std::span<std::uint8_t> a,
+                const std::span<const std::uint8_t> b);
 
-void StandardIncrement(std::span<std::byte> bytes, const int m);
+void StandardIncrement(std::span<std::uint8_t> bytes, const std::size_t m);
 
-inline std::vector<std::byte> MaskSeedlen(const std::vector<std::byte>& v,
-                                          const std::size_t seedlen_bits);
-
-std::vector<std::byte> UInt8ToBytesVector(uint64_t value);
-std::vector<std::byte> UInt32ToBytesVector(uint64_t value);
+inline std::vector<std::uint8_t> MaskSeedlen(const std::vector<std::uint8_t>& v,
+                                             const std::size_t seedlen_bits);
 
 template <typename... Vectors>
-std::vector<std::byte> AddByteVectors(const Vectors&... vecs);
+std::vector<std::uint8_t> AddByteVectors(const Vectors&... vecs);
 
 template <typename... Vectors>
-std::vector<std::byte> ConcatByteVectors(const Vectors&... vecs);
-
-std::vector<std::byte> Leftmost(const std::vector<std::byte>& value,
-                                const std::uint64_t& size);
-std::vector<std::byte> Rightmost(const std::vector<std::byte>& value,
-                                 const std::uint64_t& size);
+std::vector<std::uint8_t> ConcatByteVectors(const Vectors&... vecs);
 
 std::string GetEnglishNumberSufix(std::uint64_t number);
 
 template <std::uint32_t Size>
-std::array<std::byte, Size> HexStrToBytes(const std::string& hex) {
-  std::array<std::byte, Size> bytes = {};
+std::array<std::uint8_t, Size> HexStrToBytes(const std::string& hex) {
+  std::array<std::uint8_t, Size> bytes = {};
 
   for (size_t i = 0; i < hex.size(); i += 2) {
     bytes[i / 2] =
-        static_cast<std::byte>(std::stoul(hex.substr(i, 2), nullptr, 16));
+        static_cast<std::uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16));
   }
 
   return bytes;
 }
 
-inline std::vector<std::byte> MaskSeedlen(const std::vector<std::byte>& v,
-                                          const std::size_t seedlen_bits) {
+inline std::vector<std::uint8_t> MaskSeedlen(const std::vector<std::uint8_t>& v,
+                                             const std::size_t seedlen_bits) {
   std::size_t byteLen = (seedlen_bits + 7) / 8;
   // 결과는 하위(byteLen) 바이트를 취함 (rightmost)
-  std::vector<std::byte> res;
+  std::vector<std::uint8_t> res;
   if (v.size() <= byteLen) {
     // v가 짧으면 좌측(상위) 0으로 패딩하여 길이 맞춤
-    res.assign(byteLen - v.size(), static_cast<std::byte>(0));
+    res.assign(byteLen - v.size(), static_cast<std::uint8_t>(0));
     res.insert(res.end(), v.begin(), v.end());
   } else {
     // v가 길면 오른쪽 끝에서 byteLen 바이트를 복사
@@ -76,22 +68,23 @@ inline std::vector<std::byte> MaskSeedlen(const std::vector<std::byte>& v,
   std::size_t extraBits = seedlen_bits % 8;
   if (extraBits != 0) {
     uint8_t mask = static_cast<uint8_t>(0xFF << (8 - extraBits));
-    res[0] = static_cast<std::byte>(static_cast<unsigned char>(res[0]) & mask);
+    res[0] =
+        static_cast<std::uint8_t>(static_cast<unsigned char>(res[0]) & mask);
   }
   return res;
 }
 
 template <typename... Vectors>
-std::vector<std::byte> AddByteVectors(const Vectors&... vecs) {
+std::vector<std::uint8_t> AddByteVectors(const Vectors&... vecs) {
   // span 배열로 가리켜 읽기 전용으로 사용
-  std::array<std::span<const std::byte>, sizeof...(vecs)> all = {
+  std::array<std::span<const std::uint8_t>, sizeof...(vecs)> all = {
       std::span(vecs)...};
 
   // 결과 바이트 길이 = 가장 긴 입력 길이 (MSB-first 표현을 가정)
   size_t byteLen = 0;
   for (auto v : all) byteLen = (std::max)(byteLen, v.size());
 
-  std::vector<std::byte> result(byteLen);
+  std::vector<std::uint8_t> result(byteLen);
   unsigned int carry = 0;
 
   // i는 하위 바이트 오프셋: 0 => LSB (맨 끝)
@@ -107,27 +100,27 @@ std::vector<std::byte> AddByteVectors(const Vectors&... vecs) {
     }
     // 결과는 MSB-first로 유지해야 하므로, LSB부터 채우되
     // 결과의 (byteLen-1 - i) 위치에 쓴다.
-    result[byteLen - 1 - i] = static_cast<std::byte>(sum & 0xFF);
+    result[byteLen - 1 - i] = static_cast<std::uint8_t>(sum & 0xFF);
     carry = sum >> 8;
   }
 
   // 최상위 carry가 남으면 앞에 삽입 (MSB-first)
   if (carry) {
-    result.insert(result.begin(), static_cast<std::byte>(carry & 0xFF));
+    result.insert(result.begin(), static_cast<std::uint8_t>(carry & 0xFF));
   }
 
   return result;
 }
 
 template <typename... Vectors>
-std::vector<std::byte> ConcatByteVectors(const Vectors&... vecs) {
+std::vector<std::uint8_t> ConcatByteVectors(const Vectors&... vecs) {
   size_t total_size = (vecs.size() + ... + 0);
-  std::vector<std::byte> result;
+  std::vector<std::uint8_t> result;
   result.reserve(total_size);
   (result.insert(result.end(), vecs.begin(), vecs.end()), ...);
   return result;
 }
 
-}  // namespace bedrock::cipher::util
+}  // namespace bedrock::util
 
 #endif

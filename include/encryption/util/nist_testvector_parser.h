@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace bedrock::cipher::util::NISTTestVectorParser {
+namespace bedrock::util::NISTTestVectorParser {
 
 enum class ReturnStatusCode { kSuccess = 0, kError = -1 };
 enum class VectorCategory { kEncrypt = 0, kDecrypt = 1 };
@@ -22,7 +22,7 @@ enum class DRBGFunctionName {
 
 struct NISTTestVariables {
   std::unordered_map<std::string, std::uint32_t> integer = {};
-  std::unordered_map<std::string, std::vector<std::byte>> binary = {};
+  std::unordered_map<std::string, std::vector<std::uint8_t>> binary = {};
 };
 
 struct NISTTestMonteSample {
@@ -35,18 +35,18 @@ struct NISTTestMonteStage {
 };
 
 struct NISTTestDRBGHashState {
-  std::vector<std::byte> V = {};
-  std::vector<std::byte> C = {};
+  std::vector<std::uint8_t> V = {};
+  std::vector<std::uint8_t> C = {};
   std::uint64_t reseed_counter = 0;
 };
 
 struct NISTTestDRBGHashStep {
   DRBGFunctionName function_name;
-  std::vector<std::byte> additional_input = {};
-  std::vector<std::byte> entropy_input = {};
-  std::vector<std::byte> nonce = {};
-  std::vector<std::byte> personalization_string = {};
-  std::vector<std::byte> returned_bits = {};
+  std::vector<std::uint8_t> additional_input = {};
+  std::vector<std::uint8_t> entropy_input = {};
+  std::vector<std::uint8_t> nonce = {};
+  std::vector<std::uint8_t> personalization_string = {};
+  std::vector<std::uint8_t> returned_bits = {};
   bool prediction_resistance_flag = false;
   NISTTestDRBGHashState internal_state = {};
 };
@@ -78,6 +78,6 @@ ReturnStatusCode ParseHashDRBGVector(
     const std::filesystem::path& file_path,
     std::vector<NISTTestDRBGHashAlgorithm>& test_vectors);
 
-}  // namespace bedrock::cipher::util::NISTTestVectorParser
+}  // namespace bedrock::util::NISTTestVectorParser
 
 #endif

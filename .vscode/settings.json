@@ -9,5 +9,11 @@
     "cmake.generator": "Ninja",
     "cmake.debugConfig": {
         "cwd": "${command:cmake.buildDirectory}"
+    },
+    "files.exclude": {
+        "**/*.rpyc": true,
+        "**/*.rpa": true,
+        "**/*.rpymc": true,
+        "**/cache/": true
     }
 }
