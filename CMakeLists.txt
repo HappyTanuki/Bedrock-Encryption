@@ -33,31 +33,29 @@ if (NOT OpenSSL_FOUND)
         set(NCPU 1)
     endif()
 
-    if(PROJECT_IS_TOP_LEVEL AND NOT WIN32)
+    if(NOT WIN32)
         ExternalProject_Add(
             OpenSSL
+
             GIT_REPOSITORY https://github.com/openssl/openssl.git
             GIT_TAG openssl-3.6.1
+
             USES_TERMINAL_DOWNLOAD TRUE
             USES_TERMINAL_CONFIGURE TRUE
             USES_TERMINAL_BUILD TRUE
             USES_TERMINAL_INSTALL TRUE
+
+            CONFIGURE_COMMAND
+                <SOURCE_DIR>/config
+                --prefix=<BINARY_DIR>/../OpenSSL-Install
+                --openssldir=<BINARY_DIR>/../OpenSSL-Config
+
             BUILD_COMMAND make -j${NCPU}
             TEST_COMMAND ""
             UPDATE_COMMAND ""
             INSTALL_COMMAND make -j${NCPU} install
         )
-    elseif(NOT PROJECT_IS_TOP_LEVEL AND NOT WIN32)
-        ExternalProject_Add(
-            OpenSSL
-            GIT_REPOSITORY https://github.com/openssl/openssl.git
-            GIT_TAG openssl-3.6.1
-            BUILD_COMMAND make -j${NCPU}
-            TEST_COMMAND ""
-            UPDATE_COMMAND ""
-            INSTALL_COMMAND make -j${NCPU} install
-        )
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND PROJECT_IS_TOP_LEVEL AND WIN32)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
         ExternalProject_Add(
             Perl
             URL https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
@@ -191,14 +189,14 @@ if (NOT OpenSSL_FOUND)
         set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib64/libssl.so)
         set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib64/libcrypto.so)
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT WIN32)
-        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so)
-            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so "")
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.so "")
         endif()
-        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so)
-            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so "")
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.so "")
         endif()
-        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so)
-        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so)
+        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.so)
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.so)
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
         set(OPENSSL_CRYPTO ${BINARY_DIR}/../OpenSSL-Install/bin/libcrypto-3-x64.dll)
         set(OPENSSL_SSL ${BINARY_DIR}/../OpenSSL-Install/bin/libssl-3-x64.dll)
