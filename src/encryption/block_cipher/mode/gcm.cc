@@ -7,8 +7,10 @@ GCM::GCM(std::unique_ptr<BlockCipherAlgorithm> algorithm,
     : CTR(std::move(algorithm), IV, m_bits) {}
 
 BlockCipherErrorStatus GCM::Process(const std::span<const std::uint8_t> input,
-                                    std::span<std::uint8_t> output) {}
+                                    std::span<std::uint8_t> output) {
+  return BlockCipherErrorStatus::kSuccess;
+}
 
-bool GCM::IsValid() const {}
+bool GCM::IsValid() const { return true; }
 
 }  // namespace bedrock::cipher::op_mode

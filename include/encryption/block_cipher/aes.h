@@ -3,6 +3,8 @@
 
 #include "encryption/interfaces.h"
 
+#include <array>
+
 namespace bedrock::cipher {
 
 struct AESMatrix {

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.25)
 set(SUB_PROJECT_NAME "Encryption")
 project(${SUB_PROJECT_NAME} LANGUAGES CXX)
 
@@ -7,9 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(FetchContent)
+
 if(NOT DEFINED ROOT_PROJECT_NAME)
     set(ROOT_PROJECT_NAME "Root")
-    include(FetchContent)
     FetchContent_Declare(
         Common
         GIT_REPOSITORY https://github.com/HappyTanuki/Bedrock-Common.git
@@ -19,15 +20,11 @@ if(NOT DEFINED ROOT_PROJECT_NAME)
     FetchContent_MakeAvailable(Common)
 endif()
 
+
 # find_package(OpenSSL REQUIRED)
 set(OpenSSL_FOUND false)
 
 if (NOT OpenSSL_FOUND)
-    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-src) # default path by CMake
-    set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
-    set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
-    set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
-
     include(ExternalProject)
     include(ProcessorCount)
     ProcessorCount(NCPU)
@@ -36,62 +33,198 @@ if (NOT OpenSSL_FOUND)
         set(NCPU 1)
     endif()
 
-    if (PROJECT_IS_TOP_LEVEL)
+    if(PROJECT_IS_TOP_LEVEL AND NOT WIN32)
         ExternalProject_Add(
             OpenSSL
-            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
             GIT_REPOSITORY https://github.com/openssl/openssl.git
             GIT_TAG openssl-3.6.1
             USES_TERMINAL_DOWNLOAD TRUE
             USES_TERMINAL_CONFIGURE TRUE
             USES_TERMINAL_BUILD TRUE
             USES_TERMINAL_INSTALL TRUE
-            USES_TERMINAL_DOWNLOAD TRUE
-            CONFIGURE_COMMAND
-                ${OPENSSL_CONFIGURE_COMMAND}
-                --prefix=${OPENSSL_INSTALL_DIR}
-                --openssldir=${OPENSSL_INSTALL_DIR}
             BUILD_COMMAND make -j${NCPU}
             TEST_COMMAND ""
             UPDATE_COMMAND ""
             INSTALL_COMMAND make -j${NCPU} install
-            INSTALL_DIR ${OPENSSL_INSTALL_DIR}
         )
-    else ()
+    elseif(NOT PROJECT_IS_TOP_LEVEL AND NOT WIN32)
         ExternalProject_Add(
             OpenSSL
-            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
             GIT_REPOSITORY https://github.com/openssl/openssl.git
             GIT_TAG openssl-3.6.1
-            CONFIGURE_COMMAND
-                ${OPENSSL_CONFIGURE_COMMAND}
-                --prefix=${OPENSSL_INSTALL_DIR}
-                --openssldir=${OPENSSL_INSTALL_DIR}
             BUILD_COMMAND make -j${NCPU}
             TEST_COMMAND ""
             UPDATE_COMMAND ""
             INSTALL_COMMAND make -j${NCPU} install
-            INSTALL_DIR ${OPENSSL_INSTALL_DIR}
         )
-    endif ()
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND PROJECT_IS_TOP_LEVEL AND WIN32)
+        ExternalProject_Add(
+            Perl
+            URL https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        ExternalProject_Get_Property(Perl SOURCE_DIR)
+        set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
+        ExternalProject_Add(
+            Nasm
+            URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        ExternalProject_Get_Property(Nasm SOURCE_DIR)
+        set(NASM_BIN_DIR "${SOURCE_DIR}")
+
+        ExternalProject_Add(
+            OpenSSL
+            
+            DEPENDS Perl Nasm
+
+            GIT_REPOSITORY https://github.com/openssl/openssl.git
+            GIT_TAG openssl-3.6.1
+
+            USES_TERMINAL_DOWNLOAD TRUE
+            USES_TERMINAL_CONFIGURE TRUE
+            USES_TERMINAL_BUILD TRUE
+            USES_TERMINAL_INSTALL TRUE
+
+            CONFIGURE_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} --
+                perl ../OpenSSL/Configure VC-WIN64A
+                --prefix=<BINARY_DIR>/../OpenSSL-Install
+                --openssldir=<BINARY_DIR>/../OpenSSL-Config
+
+            BUILD_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
+                cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && nmake"
+
+            TEST_COMMAND ""
+            UPDATE_COMMAND ""
+
+            INSTALL_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
+                cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && nmake install"
+            INSTALL_DIR <BINARY_DIR>/../OpenSSL-Install
+        )
+    else()
+        ExternalProject_Add(
+            Perl
+            URL https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        ExternalProject_Get_Property(Perl SOURCE_DIR)
+        set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
+        ExternalProject_Add(
+            Nasm
+            URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        ExternalProject_Get_Property(Nasm SOURCE_DIR)
+        set(NASM_BIN_DIR "${SOURCE_DIR}")
+
+        ExternalProject_Add(
+            OpenSSL
+            
+            DEPENDS Perl Nasm
+
+            GIT_REPOSITORY https://github.com/openssl/openssl.git
+            GIT_TAG openssl-3.6.1
+
+            USES_TERMINAL_DOWNLOAD TRUE
+            USES_TERMINAL_CONFIGURE TRUE
+            USES_TERMINAL_BUILD TRUE
+            USES_TERMINAL_INSTALL TRUE
+
+            CONFIGURE_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} --
+                perl ../OpenSSL/Configure VC-WIN32
+                --prefix=<BINARY_DIR>/../OpenSSL-Install
+                --openssldir=<BINARY_DIR>/../OpenSSL-Config
+
+            BUILD_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
+                cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && nmake"
+
+            TEST_COMMAND ""
+            UPDATE_COMMAND ""
+
+            INSTALL_COMMAND
+                ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
+                cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && nmake install"
+            INSTALL_DIR <BINARY_DIR>/../OpenSSL-Install
+        )
+    endif()
 
     # We cannot use find_library because ExternalProject_Add() is performed at build time.
     # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
     # we make the include directory in advance.
-    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-    file(WRITE ${OPENSSL_INSTALL_DIR}/lib64/libssl.so "")
-    file(WRITE ${OPENSSL_INSTALL_DIR}/lib64/libcrypto.so "")
+    ExternalProject_Get_Property(OpenSSL BINARY_DIR)
+    if(NOT IS_DIRECTORY ${BINARY_DIR}/../OpenSSL-Install/include/openssl)
+        file(MAKE_DIRECTORY ${BINARY_DIR}/../OpenSSL-Install/include/openssl)
+    endif()
 
     add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib64/libssl.so)
-    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BINARY_DIR}/../OpenSSL-Install/include/openssl)
     add_dependencies(OpenSSL::SSL OpenSSL)
 
     add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib64/libcrypto.so)
-    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BINARY_DIR}/../OpenSSL-Install/include/openssl)
     add_dependencies(OpenSSL::Crypto OpenSSL)
-endif ()
+
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib64/libssl.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib64/libssl.so "")
+        endif()
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib64/libcrypto.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib64/libcrypto.so "")
+        endif()
+        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib64/libssl.so)
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib64/libcrypto.so)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT WIN32)
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so "")
+        endif()
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so "")
+        endif()
+        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib86/libssl.so)
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib86/libcrypto.so)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
+        set(OPENSSL_CRYPTO ${BINARY_DIR}/../OpenSSL-Install/bin/libcrypto-3-x64.dll)
+        set(OPENSSL_SSL ${BINARY_DIR}/../OpenSSL-Install/bin/libssl-3-x64.dll)
+        
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib "")
+        endif()
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib "")
+        endif()
+        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib)
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib)
+    else()
+        set(OPENSSL_CRYPTO ${BINARY_DIR}/../OpenSSL-Install/bin/libcrypto-3.dll)
+        set(OPENSSL_SSL ${BINARY_DIR}/../OpenSSL-Install/bin/libssl-3.dll)
+
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib "")
+        endif()
+        if(NOT EXISTS ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib)
+            file(WRITE ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib "")
+        endif()
+        set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libssl.lib)
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${BINARY_DIR}/../OpenSSL-Install/lib/libcrypto.lib)
+    endif()
+endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cc")
 
@@ -116,7 +249,11 @@ if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
     )
 endif()
 
-target_compile_options(${SUB_PROJECT_NAME} PRIVATE -maes -msse2)
+if (NOT WIN32)
+    target_compile_options(${SUB_PROJECT_NAME} PRIVATE -maes -msse2)
+else()
+    add_compile_options(/utf-8)
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     # Additional flags for GCC
@@ -140,7 +277,7 @@ if(CLANG_TIDY_EXE)
 )
 endif()
 
-if (PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS)
+if (PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS AND NOT WIN32)
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
             ${CMAKE_BINARY_DIR}/compile_commands.json
@@ -168,6 +305,31 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
         "${CMAKE_BINARY_DIR}/test"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
 )
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+        "${CMAKE_BINARY_DIR}/test/aes"
+    COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
+)
 
-add_custom_target(third_party ALL)
-add_dependencies(third_party OpenSSL)
+if(WIN32)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_CRYPTO}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+    COMMENT "Copying OpenSSL::Crypto DLL/so to test output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_SSL}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+    COMMENT "Copying OpenSSL::SSL DLL/so to test output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+    COMMENT "Copying this DLL/so to test output directory"
+)
+else()
+endif()
