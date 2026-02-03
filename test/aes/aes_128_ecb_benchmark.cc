@@ -2,21 +2,19 @@
 #include <iostream>
 
 #include "encryption/block_cipher/mode/aliases.h"
+#include "encryption/block_cipher/mode/operation.h"
 
-#define KEY_BIT 256
-#define ALGORITHM bedrock::cipher::AES_CBC
+#define KEY_BIT 128
+#define ALGORITHM bedrock::cipher::AES_ECB
 #define ITERATIONS 10000000
 #define PROCESSED_BYTES (16 * ITERATIONS)
 
 int main() {
   std::array<std::uint8_t, 16> buffer = {};
-  std::array<std::uint8_t, 32> key = {};
-  std::array<std::uint8_t, 16> iv = {};
+  std::array<std::uint8_t, KEY_BIT / 8> key = {};
 
-  double PROCESSED_KILOBYTES = static_cast<double>(PROCESSED_BYTES) / 1024.0;
-  double PROCESSED_MEGABYTES = PROCESSED_KILOBYTES / 1024.0;
-
-  ALGORITHM cipher(key, iv);
+  ALGORITHM cipher(key);
+  cipher << bedrock::cipher::op_mode::CipherMode::Encrypt;
 
   auto start_time = std::clock();
 
@@ -29,9 +27,13 @@ int main() {
   double elapsed_time =
       static_cast<double>(end_time - start_time) / CLOCKS_PER_SEC;
   std::cout << "Elapsed time: " << elapsed_time << " seconds" << std::endl;
-  std::cout << "bytes_processed: " << PROCESSED_MEGABYTES << "mb" << std::endl;
-  std::cout << "throughput: " << PROCESSED_MEGABYTES / elapsed_time << "mb/s"
+  std::cout << "bytes_processed: "
+            << static_cast<double>(PROCESSED_BYTES) / (1024 * 1024) << "mb"
             << std::endl;
+  std::cout << "throughput: "
+            << static_cast<double>(PROCESSED_BYTES) / elapsed_time /
+                   (1024 * 1024)
+            << "mb/s" << std::endl;
 
   return 0;
 }

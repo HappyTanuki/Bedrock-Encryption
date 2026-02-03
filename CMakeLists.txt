@@ -19,10 +19,87 @@ if(NOT DEFINED ROOT_PROJECT_NAME)
     FetchContent_MakeAvailable(Common)
 endif()
 
+# find_package(OpenSSL REQUIRED)
+set(OpenSSL_FOUND false)
+
+if (NOT OpenSSL_FOUND)
+    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-src) # default path by CMake
+    set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl)
+    set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
+    set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
+
+    include(ExternalProject)
+    include(ProcessorCount)
+    ProcessorCount(NCPU)
+
+    if(NCPU EQUAL 0)
+        set(NCPU 1)
+    endif()
+
+    if (PROJECT_IS_TOP_LEVEL)
+        ExternalProject_Add(
+            OpenSSL
+            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
+            GIT_REPOSITORY https://github.com/openssl/openssl.git
+            GIT_TAG openssl-3.6.1
+            USES_TERMINAL_DOWNLOAD TRUE
+            USES_TERMINAL_CONFIGURE TRUE
+            USES_TERMINAL_BUILD TRUE
+            USES_TERMINAL_INSTALL TRUE
+            USES_TERMINAL_DOWNLOAD TRUE
+            CONFIGURE_COMMAND
+                ${OPENSSL_CONFIGURE_COMMAND}
+                --prefix=${OPENSSL_INSTALL_DIR}
+                --openssldir=${OPENSSL_INSTALL_DIR}
+            BUILD_COMMAND make -j${NCPU}
+            TEST_COMMAND ""
+            UPDATE_COMMAND ""
+            INSTALL_COMMAND make -j${NCPU} install
+            INSTALL_DIR ${OPENSSL_INSTALL_DIR}
+        )
+    else ()
+        ExternalProject_Add(
+            OpenSSL
+            SOURCE_DIR ${OPENSSL_SOURCE_DIR}
+            GIT_REPOSITORY https://github.com/openssl/openssl.git
+            GIT_TAG openssl-3.6.1
+            CONFIGURE_COMMAND
+                ${OPENSSL_CONFIGURE_COMMAND}
+                --prefix=${OPENSSL_INSTALL_DIR}
+                --openssldir=${OPENSSL_INSTALL_DIR}
+            BUILD_COMMAND make -j${NCPU}
+            TEST_COMMAND ""
+            UPDATE_COMMAND ""
+            INSTALL_COMMAND make -j${NCPU} install
+            INSTALL_DIR ${OPENSSL_INSTALL_DIR}
+        )
+    endif ()
+
+    # We cannot use find_library because ExternalProject_Add() is performed at build time.
+    # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
+    # we make the include directory in advance.
+    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
+    file(WRITE ${OPENSSL_INSTALL_DIR}/lib64/libssl.so "")
+    file(WRITE ${OPENSSL_INSTALL_DIR}/lib64/libcrypto.so "")
+
+    add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
+    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib64/libssl.so)
+    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    add_dependencies(OpenSSL::SSL OpenSSL)
+
+    add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
+    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_INSTALL_DIR}/lib64/libcrypto.so)
+    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+    add_dependencies(OpenSSL::Crypto OpenSSL)
+endif ()
+
 file(GLOB_RECURSE SOURCES "src/*.cc")
 
 add_library(${SUB_PROJECT_NAME} SHARED ${SOURCES})
 target_link_libraries(${SUB_PROJECT_NAME} PUBLIC ${ROOT_PROJECT_NAME}::Common)
+
+target_link_libraries(${SUB_PROJECT_NAME} PUBLIC OpenSSL::Crypto)
+target_link_libraries(${SUB_PROJECT_NAME} PUBLIC OpenSSL::SSL)
 
 if(DEFINED ROOT_PROJECT_NAME)
     add_library(${ROOT_PROJECT_NAME}::${SUB_PROJECT_NAME} ALIAS ${SUB_PROJECT_NAME})
@@ -91,3 +168,6 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
         "${CMAKE_BINARY_DIR}/test"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
 )
+
+add_custom_target(third_party ALL)
+add_dependencies(third_party OpenSSL)
