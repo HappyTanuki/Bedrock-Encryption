@@ -20,7 +20,6 @@ if(NOT DEFINED ROOT_PROJECT_NAME)
     FetchContent_MakeAvailable(Common)
 endif()
 
-
 # find_package(OpenSSL REQUIRED)
 set(OpenSSL_FOUND false)
 
@@ -108,7 +107,6 @@ if (NOT OpenSSL_FOUND)
             INSTALL_COMMAND
                 ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
                 cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && nmake install"
-            INSTALL_DIR <BINARY_DIR>/../OpenSSL-Install
         )
     else()
         ExternalProject_Add(
@@ -161,7 +159,6 @@ if (NOT OpenSSL_FOUND)
             INSTALL_COMMAND
                 ${CMAKE_COMMAND} -E env --modify PATH=path_list_append:${PERL_BIN_DIR} --modify PATH=path_list_append:${NASM_BIN_DIR} CL=/MP --
                 cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && nmake install"
-            INSTALL_DIR <BINARY_DIR>/../OpenSSL-Install
         )
     endif()
 
@@ -238,6 +235,8 @@ if(DEFINED ROOT_PROJECT_NAME)
     add_library(${ROOT_PROJECT_NAME}::${SUB_PROJECT_NAME} ALIAS ${SUB_PROJECT_NAME})
 endif()
 
+ExternalProject_Get_Property(OpenSSL BINARY_DIR)
+target_include_directories(${SUB_PROJECT_NAME} PUBLIC ${BINARY_DIR}/../OpenSSL-Install/include)
 target_include_directories(${SUB_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -309,27 +308,48 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
         "${CMAKE_BINARY_DIR}/test/aes"
-    COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
+    COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to aes test output directory"
 )
 
-if(WIN32)
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${OPENSSL_CRYPTO}
         "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+    COMMENT "Copying OpenSSL::Crypto DLL/so to output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_CRYPTO}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test"
     COMMENT "Copying OpenSSL::Crypto DLL/so to test output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_CRYPTO}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes"
+    COMMENT "Copying OpenSSL::Crypto DLL/so to aes test output directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${OPENSSL_SSL}
         "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+    COMMENT "Copying OpenSSL::SSL DLL/so to output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_SSL}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test"
     COMMENT "Copying OpenSSL::SSL DLL/so to test output directory"
+)
+add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${OPENSSL_SSL}
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes"
+    COMMENT "Copying OpenSSL::SSL DLL/so to aes test output directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
         "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
-    COMMENT "Copying this DLL/so to test output directory"
+    COMMENT "Copying this DLL/so to output directory"
 )
-else()
-endif()
