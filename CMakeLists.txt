@@ -32,9 +32,10 @@ if (NOT OpenSSL_FOUND)
         set(NCPU 1)
     endif()
 
+    set(OPENSSL_CONFIG_DIR_NAME OpenSSL-Config)
     set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL)
     set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL-Install)
-    set(OPENSSL_CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL-Config)
+    set(OPENSSL_CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/${OPENSSL_CONFIG_DIR_NAME})
     set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
     set(OPENSSL_LIB_DIR ${OPENSSL_INSTALL_DIR}/lib)
     set(OPENSSL_BIN_DIR ${OPENSSL_INSTALL_DIR}/bin)
@@ -281,19 +282,19 @@ endif()
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+        "${CMAKE_BINARY_DIR}"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to output directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test"
+        "${CMAKE_BINARY_DIR}/test"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes"
+        "${CMAKE_BINARY_DIR}/test/aes"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to aes test output directory"
 )
 
@@ -326,18 +327,18 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${OPENSSL_CONFIG_DIR}"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/${OPENSSL_CONFIG_DIR_NAME}"
    COMMENT "Copying OpenSSL config directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${OPENSSL_CONFIG_DIR}"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test"
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/${OPENSSL_CONFIG_DIR_NAME}"
    COMMENT "Copying OpenSSL config directory"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${OPENSSL_CONFIG_DIR}"
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes"
+        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes/${OPENSSL_CONFIG_DIR_NAME}"
    COMMENT "Copying OpenSSL config directory"
 )
