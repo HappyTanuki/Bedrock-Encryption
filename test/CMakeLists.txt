@@ -3,6 +3,16 @@ file(GLOB TEST_SOURCES "*.cc")
 foreach(test_src ${TEST_SOURCES})
     get_filename_component(test_name ${test_src} NAME_WE)
     add_executable(${test_name} ${test_src})
+
+    if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
+        set_target_properties(${test_name} PROPERTIES
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH "$ORIGIN"
+            SKIP_BUILD_RPATH FALSE
+            BUILD_RPATH "$ORIGIN"
+        )
+    endif()
+
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
     if(NOT WIN32)
         target_compile_options(${test_name} PRIVATE -maes -msse2)
