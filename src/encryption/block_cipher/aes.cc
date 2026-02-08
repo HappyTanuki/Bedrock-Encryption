@@ -35,19 +35,16 @@ static bool IntrinEnabled(IntrinSet target) {
 
 AESPicker::AESPicker() = default;
 
-std::unique_ptr<AESImpl> AESPicker::PickImpl(std::span<const std::uint8_t> key,
-                                             bool use_openssl) {
+std::unique_ptr<AESImpl> AESPicker::PickImpl(
+    std::span<const std::uint8_t> key) {
   if (key.size() != 32 && key.size() != 24 && key.size() != 16) {
     return nullptr;
   }
 
   std::unique_ptr<AESImpl> impl;
 
-  if (use_openssl) {
-    impl = std::make_unique<AES_OPEN_SSL>();
-  } else if (IntrinEnabled(IntrinSet::kAESNI) &&
-             IntrinEnabled(IntrinSet::kSSE2) &&
-             IntrinEnabled(IntrinSet::kSSSE3)) {
+  if (IntrinEnabled(IntrinSet::kAESNI) && IntrinEnabled(IntrinSet::kSSE2) &&
+      IntrinEnabled(IntrinSet::kSSSE3)) {
     impl = std::make_unique<AES_NI>();
   } else {
     impl = std::make_unique<AES_SOFT>();

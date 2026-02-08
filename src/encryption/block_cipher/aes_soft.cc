@@ -139,13 +139,26 @@ constexpr AESMatrix AESMatrix::operator+(const AESMatrix& matrix) const {
 
 AES_SOFT::~AES_SOFT() = default;
 
+inline void transpose(std::span<const std::uint8_t> word,
+                      std::span<std::uint8_t> out) {
+  std::array<std::uint8_t, 16> tmp;
+
+  for (int row = 0; row < 4; row++) {
+    for (int col = 0; col < 4; col++) {
+      tmp[row * 4 + col] = word[col * 4 + row];
+    }
+  }
+
+  std::memcpy(out.data(), tmp.data(), 16);
+}
+
 void AES_SOFT::EncryptImpl(
     std::span<const std::array<std::uint8_t, 16>> round_keys,
     std::span<const std::uint8_t> block, std::span<std::uint8_t> out) noexcept {
   std::array<std::uint8_t, 16> state;
   std::uint32_t Nr = round_keys.size() - 1;
 
-  std::copy(block.begin(), block.end(), state.begin());
+  transpose(block, state);
 
   AddRoundKey(state, round_keys[0]);
 
@@ -159,7 +172,7 @@ void AES_SOFT::EncryptImpl(
   ShiftRows(state);
   AddRoundKey(state, round_keys[Nr]);
 
-  std::copy(state.begin(), state.end(), out.begin());
+  transpose(state, out);
 
   return;
 }
@@ -170,20 +183,22 @@ void AES_SOFT::DecryptImpl(
   std::array<std::uint8_t, 16> state;
   std::uint32_t Nr = round_keys.size() - 1;
 
-  std::copy(block.begin(), block.end(), state.begin());
+  transpose(block, state);
 
   AddRoundKey(state, round_keys[Nr]);
 
+  // Equivalent Inverse Cipher
   for (int round = Nr - 1; round > 0; round--) {
-    InvShiftRows(state);
     InvSubBytes(state);
+    InvShiftRows(state);
+    InvMixColumns(state);
     AddRoundKey(state, round_keys[round]);
   }
   InvShiftRows(state);
   InvSubBytes(state);
   AddRoundKey(state, round_keys[0]);
 
-  std::copy(state.begin(), state.end(), out.begin());
+  transpose(state, out);
 
   return;
 }
@@ -220,7 +235,9 @@ void AES_SOFT::KeyExpantion(
             dec_round_keys.begin());
 
   for (int i = 1; i < Nr; ++i) {
+    transpose(dec_round_keys[i], dec_round_keys[i]);
     InvMixColumns(dec_round_keys[i]);
+    transpose(dec_round_keys[i], dec_round_keys[i]);
   }
   dec_round_keys[0] = enc_round_keys[0];
   dec_round_keys[Nr] = enc_round_keys[Nr];
@@ -269,30 +286,78 @@ constexpr std::uint8_t AES_SOFT::Rcon(const std::uint32_t i) noexcept {
 constexpr void AES_SOFT::AddRoundKey(
     std::span<std::uint8_t> state,
     std::span<const std::uint8_t> round_key) noexcept {
-  for (int i = 0; i < 16; i++) {
-    state[i] = state[i] ^ round_key[i];
+  for (int row = 0; row < 4; row++) {
+    for (int col = 0; col < 4; col++) {
+      state[row * 4 + col] = state[row * 4 + col] ^ round_key[col * 4 + row];
+    }
   }
 }
 
+// inline void AES_SOFT::InvMixColumns(std::span<std::uint8_t> state) noexcept {
+//   AESMatrix a = {{0x0e, 0x0b, 0x0d, 0x09},
+//                  {0x09, 0x0e, 0x0b, 0x0d},
+//                  {0x0d, 0x09, 0x0e, 0x0b},
+//                  {0x0b, 0x0d, 0x09, 0x0e}};
+
+//   AESMatrix column;
+//   column.cols = 1;
+
+//   for (int col = 0; col < 4; col++) {
+//     for (int row = 0; row < 4; row++) {
+//       column[row][0] = state[row * 4 + col];
+//     }
+
+//     column = a * column;
+
+//     for (int row = 0; row < 4; row++) {
+//       state[row * 4 + col] = column[row][0];
+//     }
+//   }
+// }
+
 inline void AES_SOFT::InvMixColumns(std::span<std::uint8_t> state) noexcept {
-  AESMatrix a = {{0x0e, 0x0b, 0x0d, 0x09},
-                 {0x09, 0x0e, 0x0b, 0x0d},
-                 {0x0d, 0x09, 0x0e, 0x0b},
-                 {0x0b, 0x0d, 0x09, 0x0e}};
+  for (int c = 0; c < 4; ++c) {
+    uint8_t s0 = state[0 * 4 + c];
+    uint8_t s1 = state[1 * 4 + c];
+    uint8_t s2 = state[2 * 4 + c];
+    uint8_t s3 = state[3 * 4 + c];
 
-  AESMatrix column;
-  column.cols = 1;
+    // s * 2, 4, 8 계산 (GF(2^8))
+    uint8_t s0_2 = gf_xtime(s0);
+    uint8_t s1_2 = gf_xtime(s1);
+    uint8_t s2_2 = gf_xtime(s2);
+    uint8_t s3_2 = gf_xtime(s3);
 
-  for (int col = 0; col < 4; col++) {
-    for (int row = 0; row < 4; row++) {
-      column[row][0] = state[row * 4 + col];
-    }
+    uint8_t s0_4 = gf_xtime(s0_2);
+    uint8_t s1_4 = gf_xtime(s1_2);
+    uint8_t s2_4 = gf_xtime(s2_2);
+    uint8_t s3_4 = gf_xtime(s3_2);
 
-    column = a * column;
+    uint8_t s0_8 = gf_xtime(s0_4);
+    uint8_t s1_8 = gf_xtime(s1_4);
+    uint8_t s2_8 = gf_xtime(s2_4);
+    uint8_t s3_8 = gf_xtime(s3_4);
 
-    for (int row = 0; row < 4; row++) {
-      state[row * 4 + col] = column[row][0];
-    }
+    // 0e = 8 ^ 4 ^ 2
+    // 0b = 8 ^ 2 ^ 1
+    // 0d = 8 ^ 4 ^ 1
+    // 09 = 8 ^ 1
+    uint8_t u0 = (s0_8 ^ s0_4 ^ s0_2) ^ (s1_8 ^ s1_2 ^ s1) ^
+                 (s2_8 ^ s2_4 ^ s2) ^ (s3_8 ^ s3);
+
+    uint8_t u1 = (s0_8 ^ s0) ^ (s1_8 ^ s1_4 ^ s1_2) ^ (s2_8 ^ s2_2 ^ s2) ^
+                 (s3_8 ^ s3_4 ^ s3);
+
+    uint8_t u2 = (s0_8 ^ s0_4 ^ s0) ^ (s1_8 ^ s1) ^ (s2_8 ^ s2_4 ^ s2_2) ^
+                 (s3_8 ^ s3_2 ^ s3);
+
+    uint8_t u3 = (s0_8 ^ s0_2 ^ s0) ^ (s1_8 ^ s1_4 ^ s1) ^ (s2_8 ^ s2) ^
+                 (s3_8 ^ s3_4 ^ s3_2);
+
+    state[0 * 4 + c] = u0;
+    state[1 * 4 + c] = u1;
+    state[2 * 4 + c] = u2;
+    state[3 * 4 + c] = u3;
   }
 }
 
@@ -314,37 +379,61 @@ constexpr void AES_SOFT::InvSubBytes(std::span<std::uint8_t> state) noexcept {
   }
 }
 
+// constexpr void AES_SOFT::MixColumns(std::span<std::uint8_t> state) noexcept {
+//   AESMatrix a = {{0x02, 0x03, 0x01, 0x01},
+//                  {0x01, 0x02, 0x03, 0x01},
+//                  {0x01, 0x01, 0x02, 0x03},
+//                  {0x03, 0x01, 0x01, 0x02}};
+//   AESMatrix column;
+//   column.cols = 1;
+
+//   for (int col = 0; col < 4; col++) {
+//     for (int row = 0; row < 4; row++) {
+//       column[row][0] = state[row * 4 + col];
+//     }
+
+//     column = a * column;
+
+//     for (int row = 0; row < 4; row++) {
+//       state[row * 4 + col] = column[row][0];
+//     }
+//   }
+// }
+
 constexpr void AES_SOFT::MixColumns(std::span<std::uint8_t> state) noexcept {
-  AESMatrix a = {{0x02, 0x03, 0x01, 0x01},
-                 {0x01, 0x02, 0x03, 0x01},
-                 {0x01, 0x01, 0x02, 0x03},
-                 {0x03, 0x01, 0x01, 0x02}};
-  AESMatrix column;
-  column.cols = 1;
+  // 각 column은 독립적으로 처리됨
+  for (int c = 0; c < 4; ++c) {
+    uint8_t s0 = state[0 * 4 + c];
+    uint8_t s1 = state[1 * 4 + c];
+    uint8_t s2 = state[2 * 4 + c];
+    uint8_t s3 = state[3 * 4 + c];
 
-  for (int col = 0; col < 4; col++) {
-    for (int row = 0; row < 4; row++) {
-      column[row][0] = state[row * 4 + col];
-    }
+    // 공통 XOR (s0 ^ s1 ^ s2 ^ s3)
+    uint8_t t = s0 ^ s1 ^ s2 ^ s3;
 
-    column = a * column;
+    // 각 항은 (si ^ s(i+1)) * 2 를 xtime으로 계산
+    uint8_t u0 = s0 ^ t ^ gf_xtime(s0 ^ s1);
+    uint8_t u1 = s1 ^ t ^ gf_xtime(s1 ^ s2);
+    uint8_t u2 = s2 ^ t ^ gf_xtime(s2 ^ s3);
+    uint8_t u3 = s3 ^ t ^ gf_xtime(s3 ^ s0);
 
-    for (int row = 0; row < 4; row++) {
-      state[row * 4 + col] = column[row][0];
-    }
+    state[0 * 4 + c] = u0;
+    state[1 * 4 + c] = u1;
+    state[2 * 4 + c] = u2;
+    state[3 * 4 + c] = u3;
   }
 }
 
 inline void AES_SOFT::ShiftRows(std::span<std::uint8_t> state) noexcept {
-  std::array<std::array<std::uint8_t, 4>, 4> shifted;
+  std::array<std::uint8_t, 16> shifted;
 
   for (int row = 0; row < 4; row++) {
     for (int col = 0; col < 4; col++) {
-      shifted[row][col] = state[row * 4 + (col + row) % 4];
+      shifted[row * 4 + col] = state[row * 4 + (col + row) % 4];
     }
   }
 
-  std::memcpy(state.data(), shifted.data(), 16);
+  std::copy(shifted.begin(), shifted.end(), state.begin());
 }
 
 constexpr void AES_SOFT::SubBytes(std::span<std::uint8_t> state) noexcept {

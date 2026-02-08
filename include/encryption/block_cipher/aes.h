@@ -47,24 +47,6 @@ class AESImpl : public BlockCipherAlgorithm<16> {
   bool valid = false;
 };
 
-class AES_OPEN_SSL : public AESImpl {
- public:
-  virtual ~AES_OPEN_SSL() override;
-
- protected:
-  void EncryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
-  void DecryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
-
-  void KeyExpantion(
-      std::span<const std::uint8_t> key,
-      std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-      std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept override;
-};
-
 class AES_NI : public AESImpl {
  public:
   virtual ~AES_NI() override;
@@ -139,8 +121,7 @@ class AES_SOFT : public AESImpl {
 
 class AESPicker {
  public:
-  static std::unique_ptr<AESImpl> PickImpl(std::span<const std::uint8_t> key,
-                                           bool use_openssl = false);
+  static std::unique_ptr<AESImpl> PickImpl(std::span<const std::uint8_t> key);
 
  private:
   AESPicker();
