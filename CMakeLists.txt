@@ -50,7 +50,7 @@ if (NOT OpenSSL_FOUND)
             "${OPENSSL_LIB_DIR}/libcrypto.so*"
             "${OPENSSL_LIB_DIR}/libssl.so*"
         )
-        if(NOT ${OPENSSL_RUNTIME_LIBS})
+        if(NOT EXISTS OPENSSL_RUNTIME_LIBS)
             set(OPENSSL_RUNTIME_LIBS "${OPENSSL_LIB_DIR}/libcrypto.so" "${OPENSSL_LIB_DIR}/libssl.so")
             file(WRITE "${OPENSSL_LIB_DIR}/libcrypto.so" "")
             file(WRITE "${OPENSSL_LIB_DIR}/libssl.so" "")

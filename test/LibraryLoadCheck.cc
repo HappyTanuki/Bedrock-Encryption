@@ -11,12 +11,15 @@
 
 #define ALGORITHM bedrock::cipher::AES_ECB
 
-int main() {
+int main(int argc, char* argv[]) {
   std::array<std::uint8_t, 16> buffer = {};
   std::array<std::uint8_t, 32> key = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
                                       0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
                                       0xAA, 0xAA, 0xAA, 0xAA};
   std::array<std::uint8_t, 16> target = {};
+
+  if (argv != nullptr) {
+  }
 
   ::EVP_MD* md = ::EVP_MD_fetch(NULL, "SHA2-256", NULL);
 
@@ -31,6 +34,10 @@ int main() {
 
     if (buffer == target) {
       std::cout << "i: " << i << std::endl;
+      break;
+    }
+
+    if (argc < 2) {
       break;
     }
 
