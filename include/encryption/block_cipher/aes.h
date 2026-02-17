@@ -8,7 +8,7 @@
 
 namespace bedrock::cipher {
 
-class AESImpl : public BlockCipherAlgorithm<16> {
+class AESImpl : public BlockCipherAlgorithm {
  public:
   virtual ~AESImpl() noexcept override;
 
@@ -17,10 +17,10 @@ class AESImpl : public BlockCipherAlgorithm<16> {
   ErrorStatus Decrypt(std::span<const std::uint8_t> block,
                       std::span<std::uint8_t> out) noexcept final override;
 
-  ErrorStatus SetKey(const BlockCipherKey<16>& key_in) noexcept final override;
+  ErrorStatus SetKey(const BlockCipherKey& key_in) noexcept final override;
   ErrorStatus SetKey(
       std::span<const std::uint8_t> key_in) noexcept final override;
-  void GetKey(BlockCipherKey<16>& key_out) noexcept final override {
+  void GetKey(BlockCipherKey& key_out) noexcept final override {
     key_out = key;
   }
 

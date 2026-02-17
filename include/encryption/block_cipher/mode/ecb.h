@@ -5,34 +5,15 @@
 
 namespace bedrock::cipher::op_mode {
 
-template <std::uint32_t Blocksize = 16>
-class ECB : public OperationMode<Blocksize> {
+class ECB : public OperationMode {
  public:
-  using OperationMode<Blocksize>::OperationMode;
+  using OperationMode::OperationMode;
 
   ErrorStatus Process(const std::span<const std::uint8_t> input,
                       std::span<std::uint8_t> output) final override;
 
   bool IsValid() const final override { return true; }
 };
-
-template <std::uint32_t BlockSize>
-ErrorStatus ECB<BlockSize>::Process(const std::span<const std::uint8_t> input,
-                                    std::span<std::uint8_t> output) {
-  std::uint32_t block_size = this->cipher->GetBlockSize() / 8;
-  if (!this->cipher->IsValid() || input.size() != block_size ||
-      output.size() != block_size) {
-    return ErrorStatus::kFailure;
-  }
-
-  if (this->mode == CipherMode::Encrypt) {
-    this->cipher->Encrypt(input, output);
-  } else {
-    this->cipher->Decrypt(input, output);
-  }
-
-  return ErrorStatus::kSuccess;
-}
 
 }  // namespace bedrock::cipher::op_mode
 

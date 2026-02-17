@@ -46,34 +46,22 @@ if (NOT OpenSSL_FOUND)
     set(OPENSSL_INSTALL_COMMAND "")
 
     if(NOT WIN32)
-        file(GLOB OPENSSL_RUNTIME_LIBS
-            "${OPENSSL_LIB_DIR}/libcrypto.so*"
-            "${OPENSSL_LIB_DIR}/libssl.so*"
-        )
-        if(NOT EXISTS OPENSSL_RUNTIME_LIBS)
-            set(OPENSSL_RUNTIME_LIBS "${OPENSSL_LIB_DIR}/libcrypto.so" "${OPENSSL_LIB_DIR}/libssl.so")
-            file(WRITE "${OPENSSL_LIB_DIR}/libcrypto.so" "")
-            file(WRITE "${OPENSSL_LIB_DIR}/libssl.so" "")
-        endif()
+        set(OPENSSL_RUNTIME_LIBS "${OPENSSL_LIB_DIR}/libcrypto.so" "${OPENSSL_LIB_DIR}/libssl.so")
     elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll" "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
         set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll")
         set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
-
-        if(NOT EXISTS OPENSSL_RUNTIME_LIBS)
-            file(WRITE "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll" "")
-            file(WRITE "${OPENSSL_BIN_DIR}/libssl-3-x64.dll" "")
-        endif()
     else()
         set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll" "${OPENSSL_BIN_DIR}/libssl-3.dll")
         set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll")
         set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3.dll")
-
-        if(NOT EXISTS OPENSSL_RUNTIME_LIBS)
-            file(WRITE "${OPENSSL_BIN_DIR}/libcrypto-3.dll" "")
-            file(WRITE "${OPENSSL_BIN_DIR}/libssl-3.dll" "")
-        endif()
     endif()
+
+    foreach(f ${OPENSSL_RUNTIME_LIBS})
+        if(NOT EXISTS ${f})
+            file(WRITE "${f}" "")
+        endif()
+    endforeach()
 
     if(NOT WIN32)
         set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
@@ -319,22 +307,25 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
 )
 
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${OPENSSL_RUNTIME_LIBS}
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>"
-    COMMENT "Copying OpenSSL DLL/so to output directory"
+    COMMAND ${CMAKE_COMMAND}
+        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+    COMMENT "Copying OpenSSL runtime libraries (all versions)"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${OPENSSL_RUNTIME_LIBS}
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test"
-    COMMENT "Copying OpenSSL DLL/so to test output directory"
+    COMMAND ${CMAKE_COMMAND}
+        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+    COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
 )
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${OPENSSL_RUNTIME_LIBS}
-        "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes"
-    COMMENT "Copying OpenSSL DLL/so to aes test output directory"
+    COMMAND ${CMAKE_COMMAND}
+        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+    COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
 )
 
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD

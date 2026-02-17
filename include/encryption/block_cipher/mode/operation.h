@@ -11,15 +11,14 @@ namespace bedrock::cipher::op_mode {
 enum class CipherMode { Encrypt, Decrypt };
 
 // 운영 모드 인터페이스
-template <std::uint32_t Blocksize = 16>
 class OperationMode : public Validatable {
  public:
-  OperationMode(std::unique_ptr<BlockCipherAlgorithm<Blocksize>> algorithm,
+  OperationMode(std::unique_ptr<BlockCipherAlgorithm> algorithm,
                 const std::span<const std::uint8_t> IV = {})
       : cipher(std::move(algorithm)), prev_vector(IV.begin(), IV.end()) {
     buffer.resize(IV.size());
   }
-  virtual ~OperationMode() override = default;
+  virtual ~OperationMode() override;
 
   virtual ErrorStatus Process(const std::span<const std::uint8_t> input,
                               std::span<std::uint8_t> output) = 0;
@@ -35,7 +34,7 @@ class OperationMode : public Validatable {
   }
 
  protected:
-  std::unique_ptr<BlockCipherAlgorithm<Blocksize>> cipher;
+  std::unique_ptr<BlockCipherAlgorithm> cipher;
 
   std::vector<std::uint8_t> prev_vector;
   std::vector<std::uint8_t> buffer;

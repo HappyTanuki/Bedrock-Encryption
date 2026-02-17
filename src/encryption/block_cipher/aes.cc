@@ -91,7 +91,7 @@ ErrorStatus AESImpl::Decrypt(std::span<const std::uint8_t> block,
   return ErrorStatus::kSuccess;
 }
 
-ErrorStatus AESImpl::SetKey(const BlockCipherKey<16>& key_in) noexcept {
+ErrorStatus AESImpl::SetKey(const BlockCipherKey& key_in) noexcept {
   if (!key_in.IsValid()) {
     return ErrorStatus::kFailure;
   }
