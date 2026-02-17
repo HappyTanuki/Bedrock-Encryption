@@ -2,8 +2,10 @@ if (NOT OPENSSL_LIB_DIR)
     message(STATUS "OPENSSL_LIB_DIR is not set")
 else()
     file(GLOB OPENSSL_LIBS
-        "${OPENSSL_LIB_DIR}/libssl*"
-        "${OPENSSL_LIB_DIR}/libcrypto*"
+        "${OPENSSL_LIB_DIR}/libssl.so*"
+        "${OPENSSL_LIB_DIR}/libcrypto.so*"
+        "${OPENSSL_LIB_DIR}/libssl*.dll"
+        "${OPENSSL_LIB_DIR}/libcrypto*.dll"
     )
 
     foreach(f ${OPENSSL_LIBS})

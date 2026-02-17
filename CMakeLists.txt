@@ -306,27 +306,51 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to aes test output directory"
 )
 
-add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND}
-        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
-        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-    COMMENT "Copying OpenSSL runtime libraries (all versions)"
-)
-add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND}
-        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
-        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-    COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
-)
-add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND}
-        -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
-        -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-    COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
-)
+if (WIN32)
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
+    )
+else()
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
+    )
+endif()
 
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
