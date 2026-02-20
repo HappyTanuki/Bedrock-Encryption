@@ -63,16 +63,6 @@ class AES_NI : public AESImpl {
       std::span<const std::uint8_t> key,
       std::span<std::array<std::uint8_t, 16>> enc_round_keys,
       std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept override;
-
- private:
-  static std::array<std::uint8_t, 14> Rcon_memo;
-  static int Rcon_memo_index;
-
-  static std::uint8_t S_box(std::uint8_t x);
-
-  inline static std::uint32_t SubWord(const std::uint32_t word) noexcept;
-  inline static std::uint32_t RotWord(const std::uint32_t word) noexcept;
-  constexpr static std::uint8_t Rcon(const std::uint32_t i) noexcept;
 };
 
 class AES_SOFT : public AESImpl {
@@ -93,10 +83,6 @@ class AES_SOFT : public AESImpl {
       std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept override;
 
  private:
-  alignas(16) std::array<std::array<std::uint8_t, 16>, 15> enc_round_keys;
-  alignas(16) std::array<std::array<std::uint8_t, 16>, 15> dec_round_keys;
-  alignas(16) std::array<std::uint8_t, 16> state;
-
   static std::uint8_t S_box(std::uint8_t x);
   static std::uint8_t Inv_S_box(std::uint8_t x);
 

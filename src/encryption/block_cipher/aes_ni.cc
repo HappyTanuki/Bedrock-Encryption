@@ -3,50 +3,11 @@
 
 #include <cassert>
 #include <cstring>
-#include <iostream>
 
 #include "encryption/block_cipher/aes.h"
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher {
-
-static inline std::uint8_t gf_xtime(std::uint8_t a) noexcept {
-  uint8_t x = a;
-  uint8_t hi = x & 0x80;
-  x <<= 1;
-  x ^= (hi ? 0x1B : 0x00);
-  return static_cast<std::uint8_t>(x);
-}
-
-static inline std::uint8_t gf_mul(std::uint8_t x, std::uint8_t y) noexcept {
-  uint8_t r = 0;
-
-  for (int i = 0; i < 8; ++i) {
-    r ^= (y & 1) ? x : 0;
-    uint8_t hi = x & 0x80;
-    x <<= 1;
-    x ^= (hi ? 0x1B : 0x00);
-    y >>= 1;
-  }
-
-  return r;
-}
-
-static inline uint8_t gf_pow(uint8_t a, int e) {
-  uint8_t r = 1;
-  while (e) {
-    if (e & 1) r = gf_mul(r, a);
-    a = gf_mul(a, a);
-    e >>= 1;
-  }
-  return r;
-}
-
-static inline uint8_t gf_inv(uint8_t a) { return a ? gf_pow(a, 254) : 0; }
-
-static inline uint8_t rotl8(uint8_t x, int n) {
-  return (x << n) | (x >> (8 - n));
-}
 
 AES_NI::~AES_NI() = default;
 
@@ -196,119 +157,61 @@ void AES_NI::KeyExpantion(
         _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_round_keys.data()));
 
     for (int i = 1; i < Nr + 1; ++i) {
-      // 1. Assist 연산 수행 (Rcon 적용)
       __m128i assist_val = AESKeygenAssist(temp1, i);
 
-      // 2. 위에서 정의한 로직으로 다음 라운드 키 계산
-      // (간소화를 위해 내부 로직 전개)
+      // 라운드 키 계산
       assist_val = _mm_shuffle_epi32(assist_val, _MM_SHUFFLE(3, 3, 3, 3));
       temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
       temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
       temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
       temp1 = _mm_xor_si128(temp1, assist_val);
 
-      // 3. 결과 저장
+      // 결과 저장
       _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_round_keys[i].data()),
                        temp1);
     }
   } else {
-    std::uint32_t temp3;
+    __m128i x, y, assist;
+    uint32_t* W = reinterpret_cast<uint32_t*>(enc_round_keys.data());
 
-    for (std::size_t i = Nk; i < 4 * (Nr + 1); i++) {
-      temp3 = reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i - 1];
+    // 초기 키 로드: x = [W0, W1, W2, W3], y = [W4, W5, ?, ?]
+    x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(W));
+    y = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(W + 4));
 
-      if (i % Nk == 0) {
-        temp3 = SubWord(RotWord(temp3)) ^ Rcon(i / Nk);
-      } else if (Nk > 6 && i % Nk == 4) {
-        temp3 = SubWord(temp3);
+    for (int i = 0; i < 8; ++i) {
+      // 1. KeygenAssist: y의 W5(index 1)를 사용하기 위해 셔플
+      // _mm_aeskeygenassist는 index 3을 참조하므로 W5를 끝으로 보냄
+      __m128i keygen_src = _mm_shuffle_epi32(y, _MM_SHUFFLE(1, 1, 1, 1));
+      assist = AESKeygenAssist(keygen_src, i + 1);
+      assist = _mm_shuffle_epi32(assist, _MM_SHUFFLE(1, 1, 1, 1));  // 결과 전파
+
+      // 2. W6-W9 계산 (기존 W0-W3인 x와 assist 활용)
+      __m128i tmp = _mm_slli_si128(x, 4);
+      x = _mm_xor_si128(x, tmp);
+      tmp = _mm_slli_si128(tmp, 4);
+      x = _mm_xor_si128(x, tmp);
+      tmp = _mm_slli_si128(tmp, 4);
+      x = _mm_xor_si128(x, tmp);
+      x = _mm_xor_si128(x, assist);
+
+      // 3. W10-W11 계산 (기존 W4-W5인 y와 신규 W9 활용)
+      __m128i x_last = _mm_shuffle_epi32(x, _MM_SHUFFLE(3, 3, 3, 3));
+      y = _mm_xor_si128(y, _mm_slli_si128(y, 4));
+      y = _mm_xor_si128(y, x_last);
+
+      // 4. 저장 (Stitching 없이 순차 저장)
+      // i=0일 때: W6, W7, W8, W9 저장 (16바이트)
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(W + 6 + i * 6), x);
+      // i=0일 때: W10, W11 저장 (8바이트)
+      if (10 + i * 6 < 52) {
+        _mm_storel_epi64(reinterpret_cast<__m128i*>(W + 10 + i * 6), y);
       }
 
-      reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i] =
-          temp3 ^
-          reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i - Nk];
+      // 다음 루프를 위한 준비:
+      // 현재 x=[W6, W7, W8, W9], y=[W10, W11, ?, ?]
+      // 다음 루프에서 x는 "6워드 전"인 W6-W9가 되어야 하고,
+      // y는 "6워드 전"인 W10-W11이 되어야 함. (이미 세팅 완료)
     }
-
-    std::copy(enc_round_keys.begin(), enc_round_keys.end(),
-              dec_round_keys.begin());
-
-    std::uint32_t* enc_ptr =
-        reinterpret_cast<std::uint32_t*>(enc_round_keys.data());
-    std::size_t enc_ptr_offset = 0;
-    // Round 0 (Original Key)
-    enc_ptr_offset += 0;
-    __m128i temp1 =
-        _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset));
-    enc_ptr_offset += 2;
-    __m128i temp2 =
-        _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset));
-    enc_ptr_offset += 4;
-
-    for (int i = 1; i < 8; ++i) {
-      std::cout << "i:" << i << std::endl;
-      std::cout << "correct W:" << std::endl
-                << util::BytesToHexStr(std::span<std::uint8_t>(
-                       reinterpret_cast<std::uint8_t*>(enc_ptr),
-                       (enc_ptr_offset + 6) * 4))
-                << std::endl;
-      // 1. Assist 연산 수행 (Rcon 적용)
-      __m128i assist_val = AESKeygenAssist(temp2, i);
-      assist_val = _mm_shuffle_epi32(assist_val, _MM_SHUFFLE(3, 3, 3, 3));
-
-      // 2. 위에서 정의한 로직으로 다음 라운드 키 계산
-      // (간소화를 위해 내부 로직 전개)
-      temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
-      temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
-      temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
-
-      _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset),
-                       _mm_xor_si128(temp1, assist_val));
-      enc_ptr_offset += 4;
-
-      temp2 = _mm_xor_si128(temp2, _mm_slli_si128(temp2, 4));
-      temp2 = _mm_xor_si128(temp2, _mm_slli_si128(temp2, 4));
-
-      temp2 = _mm_xor_si128(temp2, _mm_slli_si128(temp1, 4));
-
-      temp2 = _mm_xor_si128(temp2, assist_val);
-
-      _mm_storel_epi64(reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset),
-                       temp2);
-      enc_ptr_offset += 2;
-
-      std::cout << "W:" << std::endl
-                << util::BytesToHexStr(std::span<std::uint8_t>(
-                       reinterpret_cast<std::uint8_t*>(enc_ptr),
-                       enc_ptr_offset * 4))
-                << std::endl;
-
-      temp1 = _mm_loadu_si128(
-          reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset - 6));
-      temp2 = _mm_loadu_si128(
-          reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset - 4));
-
-      std::cout << "temp1: "
-                << util::BytesToHexStr(std::span<std::uint8_t>(
-                       reinterpret_cast<std::uint8_t*>(&temp1), 16))
-                << std::endl;
-      std::cout << "temp2: "
-                << util::BytesToHexStr(std::span<std::uint8_t>(
-                       reinterpret_cast<std::uint8_t*>(&temp2), 16))
-                << std::endl;
-    }
-    // 1. Assist 연산 수행 (Rcon 적용)
-    __m128i assist_val = AESKeygenAssist(temp2, 8);
-
-    // 2. 위에서 정의한 로직으로 다음 라운드 키 계산
-    // (간소화를 위해 내부 로직 전개)
-    __m128i temp = temp1;
-    assist_val = _mm_shuffle_epi32(assist_val, _MM_SHUFFLE(3, 3, 3, 3));
-    temp = _mm_xor_si128(temp, _mm_slli_si128(temp, 4));
-    temp = _mm_xor_si128(temp, _mm_slli_si128(temp, 4));
-    temp = _mm_xor_si128(temp, _mm_slli_si128(temp, 4));
-    temp = _mm_xor_si128(temp, assist_val);
-
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_ptr + enc_ptr_offset),
-                     temp);
   }
 
   for (int i = 1; i < Nr; ++i) {
@@ -318,57 +221,6 @@ void AES_NI::KeyExpantion(
   dec_round_keys[0] = enc_round_keys[0];
   dec_round_keys[Nr] = enc_round_keys[Nr];
   return;
-}
-
-inline std::uint32_t AES_NI::SubWord(const std::uint32_t word) noexcept {
-  std::uint32_t result;
-  const std::uint8_t* word_ptr = reinterpret_cast<const std::uint8_t*>(&word);
-  std::uint8_t* result_ptr = reinterpret_cast<std::uint8_t*>(&result);
-
-  result_ptr[0] = S_box(word_ptr[0]);
-  result_ptr[1] = S_box(word_ptr[1]);
-  result_ptr[2] = S_box(word_ptr[2]);
-  result_ptr[3] = S_box(word_ptr[3]);
-
-  return result;
-}
-
-inline std::uint32_t AES_NI::RotWord(const std::uint32_t word) noexcept {
-  std::uint32_t result;
-  const std::uint8_t* word_ptr = reinterpret_cast<const std::uint8_t*>(&word);
-  std::uint8_t* result_ptr = reinterpret_cast<std::uint8_t*>(&result);
-
-  result_ptr[0] = word_ptr[1];
-  result_ptr[1] = word_ptr[2];
-  result_ptr[2] = word_ptr[3];
-  result_ptr[3] = word_ptr[0];
-
-  return result;
-}
-
-constexpr std::uint8_t AES_NI::Rcon(const std::uint32_t i) noexcept {
-  if (Rcon_memo[i] != static_cast<std::uint8_t>(0x00)) return Rcon_memo[i];
-
-  for (int j = Rcon_memo_index + 1; j <= i; j++) {
-    Rcon_memo[j] = gf_mul(Rcon_memo[j - 1], static_cast<std::uint8_t>(0x02));
-  }
-
-  Rcon_memo_index = i;
-
-  return Rcon_memo[i];
-}
-
-std::array<std::uint8_t, 14> AES_NI::Rcon_memo = {
-    static_cast<std::uint8_t>(0x00), static_cast<std::uint8_t>(0x01),
-    static_cast<std::uint8_t>(0x02)};
-int AES_NI::Rcon_memo_index = 1;
-
-std::uint8_t AES_NI::S_box(std::uint8_t x) {
-  uint8_t y = gf_inv(x);
-
-  uint8_t s = y ^ rotl8(y, 1) ^ rotl8(y, 2) ^ rotl8(y, 3) ^ rotl8(y, 4) ^ 0x63;
-
-  return s;
 }
 
 }  // namespace bedrock::cipher

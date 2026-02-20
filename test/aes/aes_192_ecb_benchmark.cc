@@ -4,17 +4,16 @@
 #include "encryption/block_cipher/mode/aliases.h"
 #include "encryption/block_cipher/mode/operation.h"
 
-#define KEY_BIT 256
-#define ALGORITHM bedrock::cipher::AES_CBC
+#define KEY_BIT 192
+#define ALGORITHM bedrock::cipher::AES_ECB
 #define ITERATIONS 100000000
 #define PROCESSED_BYTES (16 * ITERATIONS)
 
 int main() {
   std::array<std::uint8_t, 16> buffer = {};
   std::array<std::uint8_t, KEY_BIT / 8> key = {};
-  std::array<std::uint8_t, 16> iv = {};
 
-  ALGORITHM cipher(key, iv);
+  ALGORITHM cipher(key);
   cipher << bedrock::cipher::op_mode::CipherMode::Encrypt;
 
   auto start_time = std::clock();

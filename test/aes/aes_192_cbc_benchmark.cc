@@ -4,7 +4,7 @@
 #include "encryption/block_cipher/mode/aliases.h"
 #include "encryption/block_cipher/mode/operation.h"
 
-#define KEY_BIT 256
+#define KEY_BIT 192
 #define ALGORITHM bedrock::cipher::AES_CBC
 #define ITERATIONS 100000000
 #define PROCESSED_BYTES (16 * ITERATIONS)
