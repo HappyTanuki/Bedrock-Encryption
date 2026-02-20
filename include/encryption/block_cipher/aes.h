@@ -69,7 +69,6 @@ class AES_NI : public AESImpl {
   static int Rcon_memo_index;
 
   static std::uint8_t S_box(std::uint8_t x);
-  static std::uint8_t Inv_S_box(std::uint8_t x);
 
   inline static std::uint32_t SubWord(const std::uint32_t word) noexcept;
   inline static std::uint32_t RotWord(const std::uint32_t word) noexcept;

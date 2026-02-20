@@ -293,28 +293,6 @@ constexpr void AES_SOFT::AddRoundKey(
   }
 }
 
-// inline void AES_SOFT::InvMixColumns(std::span<std::uint8_t> state) noexcept {
-//   AESMatrix a = {{0x0e, 0x0b, 0x0d, 0x09},
-//                  {0x09, 0x0e, 0x0b, 0x0d},
-//                  {0x0d, 0x09, 0x0e, 0x0b},
-//                  {0x0b, 0x0d, 0x09, 0x0e}};
-
-//   AESMatrix column;
-//   column.cols = 1;
-
-//   for (int col = 0; col < 4; col++) {
-//     for (int row = 0; row < 4; row++) {
-//       column[row][0] = state[row * 4 + col];
-//     }
-
-//     column = a * column;
-
-//     for (int row = 0; row < 4; row++) {
-//       state[row * 4 + col] = column[row][0];
-//     }
-//   }
-// }
-
 inline void AES_SOFT::InvMixColumns(std::span<std::uint8_t> state) noexcept {
   for (int c = 0; c < 4; ++c) {
     uint8_t s0 = state[0 * 4 + c];
