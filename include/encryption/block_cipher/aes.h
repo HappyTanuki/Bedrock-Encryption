@@ -12,37 +12,25 @@ class AESImpl : public BlockCipherAlgorithm {
  public:
   virtual ~AESImpl() noexcept override;
 
-  ErrorStatus Encrypt(std::span<const std::uint8_t> block,
-                      std::span<std::uint8_t> out) noexcept final override;
-  ErrorStatus Decrypt(std::span<const std::uint8_t> block,
-                      std::span<std::uint8_t> out) noexcept final override;
+  ErrorStatus Encrypt(
+      BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+      std::span<std::uint8_t> out) const noexcept final override;
+  ErrorStatus Decrypt(
+      BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+      std::span<std::uint8_t> out) const noexcept final override;
 
-  ErrorStatus SetKey(const BlockCipherKey& key_in) noexcept final override;
-  ErrorStatus SetKey(
-      std::span<const std::uint8_t> key_in) noexcept final override;
-  void GetKey(BlockCipherKey& key_out) noexcept final override {
-    key_out = key;
-  }
-
-  bool IsValid() const noexcept final override { return valid; }
-
-  std::uint32_t GetKeySize() const noexcept final override { return key.size; }
   std::uint32_t GetBlockSize() const noexcept final override { return 128; }
 
- protected:
-  virtual void EncryptImpl(
-      std::span<const std::array<std::uint8_t, 16>> round_keys,
-      std::span<const std::uint8_t> block,
-      std::span<std::uint8_t> out) noexcept = 0;
-  virtual void DecryptImpl(
-      std::span<const std::array<std::uint8_t, 16>> round_keys,
-      std::span<const std::uint8_t> block,
-      std::span<std::uint8_t> out) noexcept = 0;
+  ErrorStatus KeyExpantion(std::span<const std::uint8_t> key,
+                           BlockCipherCTX& ctx) const noexcept override = 0;
 
-  virtual void KeyExpantion(
-      std::span<const std::uint8_t> key,
-      std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-      std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept = 0;
+ protected:
+  virtual void EncryptImpl(BlockCipherCTX& ctx,
+                           std::span<const std::uint8_t> block,
+                           std::span<std::uint8_t> out) const noexcept = 0;
+  virtual void DecryptImpl(BlockCipherCTX& ctx,
+                           std::span<const std::uint8_t> block,
+                           std::span<std::uint8_t> out) const noexcept = 0;
 
   bool valid = false;
 };
@@ -51,36 +39,28 @@ class AES_NI : public AESImpl {
  public:
   virtual ~AES_NI() override;
 
- protected:
-  void EncryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
-  void DecryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
+  ErrorStatus KeyExpantion(std::span<const std::uint8_t> key,
+                           BlockCipherCTX& ctx) const noexcept override;
 
-  void KeyExpantion(
-      std::span<const std::uint8_t> key,
-      std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-      std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept override;
+ protected:
+  void EncryptImpl(BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+                   std::span<std::uint8_t> out) const noexcept override;
+  void DecryptImpl(BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+                   std::span<std::uint8_t> out) const noexcept override;
 };
 
 class AES_SOFT : public AESImpl {
  public:
   virtual ~AES_SOFT() override;
 
- protected:
-  void EncryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
-  void DecryptImpl(std::span<const std::array<std::uint8_t, 16>> round_keys,
-                   std::span<const std::uint8_t> block,
-                   std::span<std::uint8_t> out) noexcept override;
+  ErrorStatus KeyExpantion(std::span<const std::uint8_t> key,
+                           BlockCipherCTX& ctx) const noexcept override;
 
-  void KeyExpantion(
-      std::span<const std::uint8_t> key,
-      std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-      std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept override;
+ protected:
+  void EncryptImpl(BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+                   std::span<std::uint8_t> out) const noexcept override;
+  void DecryptImpl(BlockCipherCTX& ctx, std::span<const std::uint8_t> block,
+                   std::span<std::uint8_t> out) const noexcept override;
 
  private:
   static std::uint8_t S_box(std::uint8_t x);
@@ -106,10 +86,23 @@ class AES_SOFT : public AESImpl {
 
 class AESPicker {
  public:
-  static std::unique_ptr<AESImpl> PickImpl(std::span<const std::uint8_t> key);
+  static std::shared_ptr<AESImpl> PickImpl();
 
  private:
   AESPicker();
+};
+
+class AESCTXController {
+ public:
+  static ErrorStatus Create(std::shared_ptr<BlockCipherAlgorithm> impl,
+                            std::span<const std::uint8_t> key,
+                            BlockCipherCTX& out) noexcept;
+  static ErrorStatus SetKey(std::shared_ptr<BlockCipherAlgorithm> impl,
+                            BlockCipherCTX& ctx,
+                            std::span<const std::uint8_t> key_in) noexcept;
+
+ private:
+  AESCTXController();
 };
 
 }  // namespace bedrock::cipher

@@ -152,73 +152,69 @@ inline void transpose(std::span<const std::uint8_t> word,
   std::memcpy(out.data(), tmp.data(), 16);
 }
 
-void AES_SOFT::EncryptImpl(
-    std::span<const std::array<std::uint8_t, 16>> round_keys,
-    std::span<const std::uint8_t> block, std::span<std::uint8_t> out) noexcept {
-  std::array<std::uint8_t, 16> state;
-  std::uint32_t Nr = round_keys.size() - 1;
+void AES_SOFT::EncryptImpl(BlockCipherCTX& ctx,
+                           std::span<const std::uint8_t> block,
+                           std::span<std::uint8_t> out) const noexcept {
+  transpose(block, ctx.state);
 
-  transpose(block, state);
+  AddRoundKey(ctx.state, ctx.enc_round_keys[0]);
 
-  AddRoundKey(state, round_keys[0]);
-
-  for (int round = 1; round < Nr; round++) {
-    SubBytes(state);
-    ShiftRows(state);
-    MixColumns(state);
-    AddRoundKey(state, round_keys[round]);
+  for (int round = 1; round < ctx.Nr; round++) {
+    SubBytes(ctx.state);
+    ShiftRows(ctx.state);
+    MixColumns(ctx.state);
+    AddRoundKey(ctx.state, ctx.enc_round_keys[round]);
   }
-  SubBytes(state);
-  ShiftRows(state);
-  AddRoundKey(state, round_keys[Nr]);
+  SubBytes(ctx.state);
+  ShiftRows(ctx.state);
+  AddRoundKey(ctx.state, ctx.enc_round_keys[ctx.Nr]);
 
-  transpose(state, out);
+  transpose(ctx.state, out);
 
   return;
 }
 
-void AES_SOFT::DecryptImpl(
-    std::span<const std::array<std::uint8_t, 16>> round_keys,
-    std::span<const std::uint8_t> block, std::span<std::uint8_t> out) noexcept {
-  std::array<std::uint8_t, 16> state;
-  std::uint32_t Nr = round_keys.size() - 1;
+void AES_SOFT::DecryptImpl(BlockCipherCTX& ctx,
+                           std::span<const std::uint8_t> block,
+                           std::span<std::uint8_t> out) const noexcept {
+  transpose(block, ctx.state);
 
-  transpose(block, state);
-
-  AddRoundKey(state, round_keys[Nr]);
+  AddRoundKey(ctx.state, ctx.dec_round_keys[ctx.Nr]);
 
   // Equivalent Inverse Cipher
-  for (int round = Nr - 1; round > 0; round--) {
-    InvSubBytes(state);
-    InvShiftRows(state);
-    InvMixColumns(state);
-    AddRoundKey(state, round_keys[round]);
+  for (int round = ctx.Nr - 1; round > 0; round--) {
+    InvSubBytes(ctx.state);
+    InvShiftRows(ctx.state);
+    InvMixColumns(ctx.state);
+    AddRoundKey(ctx.state, ctx.dec_round_keys[round]);
   }
-  InvShiftRows(state);
-  InvSubBytes(state);
-  AddRoundKey(state, round_keys[0]);
+  InvShiftRows(ctx.state);
+  InvSubBytes(ctx.state);
+  AddRoundKey(ctx.state, ctx.dec_round_keys[0]);
 
-  transpose(state, out);
+  transpose(ctx.state, out);
 
   return;
 }
 
-void AES_SOFT::KeyExpantion(
-    std::span<const std::uint8_t> key,
-    std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-    std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept {
+ErrorStatus AES_SOFT::KeyExpantion(std::span<const std::uint8_t> key,
+                                   BlockCipherCTX& ctx) const noexcept {
   std::uint16_t key_size = key.size() * 8;
   std::uint32_t Nk = key_size / 32;
   std::uint32_t Nr = Nk + 6;
 
-  assert(enc_round_keys.size() >= Nr + 1 && dec_round_keys.size() >= Nr + 1);
+  if (ctx.enc_round_keys.size() < Nr + 1 ||
+      ctx.dec_round_keys.size() < Nr + 1) {
+    return ErrorStatus::kFailure;
+  }
 
-  std::memcpy(enc_round_keys.data(), key.data(), key.size());
+  std::memcpy(ctx.enc_round_keys.data(), key.data(), key.size());
 
   std::uint32_t temp3;
 
   for (std::size_t i = Nk; i < 4 * (Nr + 1); i++) {
-    temp3 = reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i - 1];
+    temp3 =
+        reinterpret_cast<std::uint32_t*>(ctx.enc_round_keys[0].data())[i - 1];
 
     if (i % Nk == 0) {
       temp3 = SubWord(RotWord(temp3)) ^ Rcon(i / Nk);
@@ -226,23 +222,23 @@ void AES_SOFT::KeyExpantion(
       temp3 = SubWord(temp3);
     }
 
-    reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i] =
+    reinterpret_cast<std::uint32_t*>(ctx.enc_round_keys[0].data())[i] =
         temp3 ^
-        reinterpret_cast<std::uint32_t*>(enc_round_keys[0].data())[i - Nk];
+        reinterpret_cast<std::uint32_t*>(ctx.enc_round_keys[0].data())[i - Nk];
   }
 
-  std::copy(enc_round_keys.begin(), enc_round_keys.end(),
-            dec_round_keys.begin());
+  std::copy(ctx.enc_round_keys.begin(), ctx.enc_round_keys.end(),
+            ctx.dec_round_keys.begin());
 
   for (int i = 1; i < Nr; ++i) {
-    transpose(dec_round_keys[i], dec_round_keys[i]);
-    InvMixColumns(dec_round_keys[i]);
-    transpose(dec_round_keys[i], dec_round_keys[i]);
+    transpose(ctx.dec_round_keys[i], ctx.dec_round_keys[i]);
+    InvMixColumns(ctx.dec_round_keys[i]);
+    transpose(ctx.dec_round_keys[i], ctx.dec_round_keys[i]);
   }
-  dec_round_keys[0] = enc_round_keys[0];
-  dec_round_keys[Nr] = enc_round_keys[Nr];
+  ctx.dec_round_keys[0] = ctx.enc_round_keys[0];
+  ctx.dec_round_keys[Nr] = ctx.enc_round_keys[Nr];
 
-  return;
+  return ErrorStatus::kSuccess;
 }
 
 inline std::uint32_t AES_SOFT::SubWord(const std::uint32_t word) noexcept {

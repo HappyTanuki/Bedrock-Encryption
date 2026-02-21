@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <span>
+#include <vector>
 
 #include "encryption/interfaces.h"
 
@@ -10,36 +11,53 @@ namespace bedrock::cipher::op_mode {
 
 enum class CipherMode { Encrypt, Decrypt };
 
+class ModeContext : public BlockCipherCTX {
+ public:
+  virtual ~ModeContext() override;
+
+  std::vector<std::uint8_t> iv;
+  CipherMode mode;
+  std::uint32_t m_bits = 64;
+  std::vector<std::uint8_t> prev_vector;
+  std::vector<std::uint8_t> buffer;
+};
+
 // 운영 모드 인터페이스
 class OperationMode : public Validatable {
  public:
-  OperationMode(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-                const std::span<const std::uint8_t> IV = {})
-      : cipher(std::move(algorithm)), prev_vector(IV.begin(), IV.end()) {
-    buffer.resize(IV.size());
-  }
   virtual ~OperationMode() override;
 
-  virtual ErrorStatus Process(const std::span<const std::uint8_t> input,
-                              std::span<std::uint8_t> output) = 0;
+  virtual ErrorStatus Process(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& ctx, const std::span<const std::uint8_t> input,
+      std::span<std::uint8_t> output) = 0;
+};
 
-  OperationMode& operator<<(const CipherMode& _mode) {
-    this->mode = _mode;
-    return *this;
-  }
+class ImplPicker {
+ public:
+  static std::shared_ptr<OperationMode> PickImpl(std::string mode);
 
-  void SetIV(const std::span<const std::uint8_t> IV) {
-    prev_vector = std::vector<std::uint8_t>(IV.begin(), IV.end());
-    buffer.resize(IV.size());
-  }
+ private:
+  ImplPicker();
+};
 
- protected:
-  std::unique_ptr<BlockCipherAlgorithm> cipher;
+class CTXController {
+ public:
+  static ErrorStatus Create(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& out, std::span<const std::uint8_t> key,
+      std::span<const std::uint8_t> iv, CipherMode mode,
+      std::uint32_t m_bits = 64) noexcept;
+  static ErrorStatus SetKey(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& ctx, std::span<const std::uint8_t> key_in) noexcept;
+  static ErrorStatus SetIV(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& ctx, std::span<const std::uint8_t> iv_in) noexcept;
+  static ErrorStatus SetMode(ModeContext& ctx, CipherMode mode) noexcept;
 
-  std::vector<std::uint8_t> prev_vector;
-  std::vector<std::uint8_t> buffer;
-
-  CipherMode mode = CipherMode::Encrypt;
+ private:
+  CTXController();
 };
 
 };  // namespace bedrock::cipher::op_mode

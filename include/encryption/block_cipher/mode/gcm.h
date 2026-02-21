@@ -11,13 +11,10 @@ namespace bedrock::cipher::op_mode {
 // GCM 운영 모드
 class GCM : public CTR {
  public:
-  using CTR::CTR;
-
-  GCM(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-      const std::span<const std::uint8_t> IV, std::uint32_t m_bits = 64);
-
-  ErrorStatus Process(const std::span<const std::uint8_t> input,
-                      std::span<std::uint8_t> output) final override;
+  ErrorStatus Process(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& ctx, const std::span<const std::uint8_t> input,
+      std::span<std::uint8_t> output) final override;
 
   bool IsValid() const final override;
 };

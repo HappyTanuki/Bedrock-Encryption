@@ -7,13 +7,10 @@ namespace bedrock::cipher::op_mode {
 
 class CTR : public OperationMode {
  public:
-  using OperationMode::OperationMode;
-
-  CTR(std::unique_ptr<BlockCipherAlgorithm> algorithm,
-      const std::span<const std::uint8_t> IV, std::uint32_t m_bits = 64);
-
-  ErrorStatus Process(const std::span<const std::uint8_t> input,
-                      std::span<std::uint8_t> output) override;
+  ErrorStatus Process(
+      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      ModeContext& ctx, const std::span<const std::uint8_t> input,
+      std::span<std::uint8_t> output) override;
 
   bool IsValid() const override { return valid; }
 

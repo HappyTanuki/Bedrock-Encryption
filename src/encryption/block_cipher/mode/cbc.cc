@@ -4,26 +4,27 @@
 
 namespace bedrock::cipher::op_mode {
 
-ErrorStatus CBC::Process(const std::span<const std::uint8_t> input,
-                         std::span<std::uint8_t> output) {
-  std::uint32_t block_size = this->cipher->GetBlockSize() / 8;
-  if (!this->cipher->IsValid() || input.size() != block_size ||
-      output.size() != block_size) {
+ErrorStatus CBC::Process(
+    std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+    ModeContext& ctx, const std::span<const std::uint8_t> input,
+    std::span<std::uint8_t> output) {
+  if (impl == nullptr || !ctx.IsValid() || input.size() != ctx.block_size / 8 ||
+      output.size() != ctx.block_size / 8) {
     return ErrorStatus::kFailure;
   }
 
-  if (this->mode == bedrock::cipher::op_mode::CipherMode::Encrypt) {
-    std::copy(input.begin(), input.end(), this->buffer.begin());
-    util::XorInplace(this->buffer, this->prev_vector);
-    this->cipher->Encrypt(this->buffer, this->prev_vector);
-    this->buffer = this->prev_vector;
+  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::Encrypt) {
+    std::copy(input.begin(), input.end(), ctx.buffer.begin());
+    util::XorInplace(ctx.buffer, ctx.prev_vector);
+    impl->Encrypt(ctx, ctx.buffer, ctx.prev_vector);
+    ctx.buffer = ctx.prev_vector;
   } else {
-    this->cipher->Decrypt(input, this->buffer);
-    util::XorInplace(this->buffer, this->prev_vector);
-    std::copy(input.begin(), input.end(), this->prev_vector.begin());
+    impl->Decrypt(ctx, input, ctx.buffer);
+    util::XorInplace(ctx.buffer, ctx.prev_vector);
+    std::copy(input.begin(), input.end(), ctx.prev_vector.begin());
   }
 
-  std::copy(this->buffer.begin(), this->buffer.end(), output.begin());
+  std::copy(ctx.buffer.begin(), ctx.buffer.end(), output.begin());
 
   return ErrorStatus::kSuccess;
 }

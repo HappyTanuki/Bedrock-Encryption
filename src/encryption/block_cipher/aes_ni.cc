@@ -11,56 +11,52 @@ namespace bedrock::cipher {
 
 AES_NI::~AES_NI() = default;
 
-void AES_NI::EncryptImpl(
-    std::span<const std::array<std::uint8_t, 16>> round_keys,
-    std::span<const std::uint8_t> block, std::span<std::uint8_t> out) noexcept {
-  std::array<std::uint8_t, 16> state;
-  std::uint32_t Nr = round_keys.size() - 1;
+void AES_NI::EncryptImpl(BlockCipherCTX& ctx,
+                         std::span<const std::uint8_t> block,
+                         std::span<std::uint8_t> out) const noexcept {
+  std::copy(block.begin(), block.end(), ctx.state.begin());
 
-  std::copy(block.begin(), block.end(), state.begin());
-
-  bedrock::util::XorInplace(state, round_keys[0]);
+  bedrock::util::XorInplace(ctx.state, ctx.enc_round_keys[0]);
 
   __m128i state_128i =
-      _mm_loadu_si128(reinterpret_cast<const __m128i*>(state.data()));
+      _mm_loadu_si128(reinterpret_cast<const __m128i*>(ctx.state.data()));
   const __m128i* _m128_round_keys =
-      reinterpret_cast<const __m128i*>(round_keys.data());
+      reinterpret_cast<const __m128i*>(ctx.enc_round_keys.data());
 
-  for (int round = 1; round < Nr; round++) {
+  for (int round = 1; round < ctx.Nr; round++) {
     state_128i = _mm_aesenc_si128(state_128i, _m128_round_keys[round]);
   }
-  state_128i = _mm_aesenclast_si128(state_128i, _m128_round_keys[Nr]);
+  state_128i = _mm_aesenclast_si128(state_128i, _m128_round_keys[ctx.Nr]);
 
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(state.data()), state_128i);
+  _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.state.data()), state_128i);
 
-  std::copy(state.begin(), state.end(), out.begin());
+  std::copy(ctx.state.begin(), ctx.state.end(), out.begin());
 
   return;
 }
 
-void AES_NI::DecryptImpl(
-    std::span<const std::array<std::uint8_t, 16>> round_keys,
-    std::span<const std::uint8_t> block, std::span<std::uint8_t> out) noexcept {
-  std::array<std::uint8_t, 16> state;
-  std::uint32_t Nr = round_keys.size() - 1;
+void AES_NI::DecryptImpl(BlockCipherCTX& ctx,
+                         std::span<const std::uint8_t> block,
+                         std::span<std::uint8_t> out) const noexcept {
+  std::copy(block.begin(), block.end(), ctx.state.begin());
 
-  std::copy(block.begin(), block.end(), state.begin());
-
-  bedrock::util::XorInplace(state, round_keys[Nr]);
+  bedrock::util::XorInplace(ctx.state, ctx.dec_round_keys[ctx.Nr]);
 
   __m128i state_128i =
-      _mm_loadu_si128(reinterpret_cast<__m128i*>(state.data()));
+      _mm_loadu_si128(reinterpret_cast<__m128i*>(ctx.state.data()));
 
-  for (int round = Nr - 1; round > 0; --round) {
+  for (int round = ctx.Nr - 1; round > 0; --round) {
     state_128i = _mm_aesdec_si128(
-        state_128i, reinterpret_cast<const __m128i*>(round_keys.data())[round]);
+        state_128i,
+        reinterpret_cast<const __m128i*>(ctx.dec_round_keys.data())[round]);
   }
   state_128i = _mm_aesdeclast_si128(
-      state_128i, reinterpret_cast<const __m128i*>(round_keys.data())[0]);
+      state_128i,
+      reinterpret_cast<const __m128i*>(ctx.dec_round_keys.data())[0]);
 
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(state.data()), state_128i);
+  _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.state.data()), state_128i);
 
-  std::copy(state.begin(), state.end(), out.begin());
+  std::copy(ctx.state.begin(), ctx.state.end(), out.begin());
 
   return;
 }
@@ -96,23 +92,24 @@ static inline __m128i AESKeygenAssist(__m128i a, int imm) {
   return _mm_set_epi32(0x00, 0x00, 0x00, 0x00);
 }
 
-void AES_NI::KeyExpantion(
-    std::span<const std::uint8_t> key,
-    std::span<std::array<std::uint8_t, 16>> enc_round_keys,
-    std::span<std::array<std::uint8_t, 16>> dec_round_keys) noexcept {
+ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
+                                 BlockCipherCTX& ctx) const noexcept {
   std::uint16_t key_size = key.size() * 8;
   std::uint32_t Nk = key_size / 32;
   std::uint32_t Nr = Nk + 6;
 
-  assert(enc_round_keys.size() >= Nr + 1 && dec_round_keys.size() >= Nr + 1);
+  if (ctx.enc_round_keys.size() < Nr + 1 ||
+      ctx.dec_round_keys.size() < Nr + 1) {
+    return ErrorStatus::kFailure;
+  }
 
-  std::memcpy(enc_round_keys.data(), key.data(), key.size());
+  std::memcpy(ctx.enc_round_keys.data(), key.data(), key.size());
 
   if (key_size == 256) {
-    __m128i temp1 =
-        _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_round_keys[0].data()));
-    __m128i temp2 =
-        _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_round_keys[1].data()));
+    __m128i temp1 = _mm_loadu_si128(
+        reinterpret_cast<__m128i*>(ctx.enc_round_keys[0].data()));
+    __m128i temp2 = _mm_loadu_si128(
+        reinterpret_cast<__m128i*>(ctx.enc_round_keys[1].data()));
 
     int i = 2;
     __m128i assist_val = _mm_set_epi32(0, 0, 0, 0);
@@ -125,8 +122,8 @@ void AES_NI::KeyExpantion(
       temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
       temp1 = _mm_xor_si128(temp1, assist_val);
 
-      _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_round_keys[i++].data()),
-                       temp1);
+      _mm_storeu_si128(
+          reinterpret_cast<__m128i*>(ctx.enc_round_keys[i++].data()), temp1);
 
       assist_val = AESKeygenAssist(temp1, 0);
       assist_val = _mm_shuffle_epi32(assist_val, _MM_SHUFFLE(2, 2, 2, 2));
@@ -136,8 +133,8 @@ void AES_NI::KeyExpantion(
       temp2 = _mm_xor_si128(temp2, _mm_slli_si128(temp2, 4));
       temp2 = _mm_xor_si128(temp2, assist_val);
 
-      _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_round_keys[i++].data()),
-                       temp2);
+      _mm_storeu_si128(
+          reinterpret_cast<__m128i*>(ctx.enc_round_keys[i++].data()), temp2);
     }
 
     assist_val = AESKeygenAssist(temp2, i / 2);
@@ -148,13 +145,13 @@ void AES_NI::KeyExpantion(
     temp1 = _mm_xor_si128(temp1, _mm_slli_si128(temp1, 4));
     temp1 = _mm_xor_si128(temp1, assist_val);
 
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_round_keys[i++].data()),
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.enc_round_keys[i++].data()),
                      temp1);
 
   } else if (key_size == 128) {
     // Round 0 (Original Key)
     __m128i temp1 =
-        _mm_loadu_si128(reinterpret_cast<__m128i*>(enc_round_keys.data()));
+        _mm_loadu_si128(reinterpret_cast<__m128i*>(ctx.enc_round_keys.data()));
 
     for (int i = 1; i < Nr + 1; ++i) {
       __m128i assist_val = AESKeygenAssist(temp1, i);
@@ -167,12 +164,12 @@ void AES_NI::KeyExpantion(
       temp1 = _mm_xor_si128(temp1, assist_val);
 
       // 결과 저장
-      _mm_storeu_si128(reinterpret_cast<__m128i*>(enc_round_keys[i].data()),
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.enc_round_keys[i].data()),
                        temp1);
     }
   } else {
     __m128i x, y, assist;
-    uint32_t* W = reinterpret_cast<uint32_t*>(enc_round_keys.data());
+    uint32_t* W = reinterpret_cast<uint32_t*>(ctx.enc_round_keys.data());
 
     // 초기 키 로드: x = [W0, W1, W2, W3], y = [W4, W5, ?, ?]
     x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(W));
@@ -215,12 +212,13 @@ void AES_NI::KeyExpantion(
   }
 
   for (int i = 1; i < Nr; ++i) {
-    reinterpret_cast<__m128i*>(dec_round_keys.data())[i] =
-        _mm_aesimc_si128(reinterpret_cast<__m128i*>(enc_round_keys.data())[i]);
+    reinterpret_cast<__m128i*>(ctx.dec_round_keys.data())[i] = _mm_aesimc_si128(
+        reinterpret_cast<__m128i*>(ctx.enc_round_keys.data())[i]);
   }
-  dec_round_keys[0] = enc_round_keys[0];
-  dec_round_keys[Nr] = enc_round_keys[Nr];
-  return;
+  ctx.dec_round_keys[0] = ctx.enc_round_keys[0];
+  ctx.dec_round_keys[Nr] = ctx.enc_round_keys[Nr];
+
+  return ErrorStatus::kSuccess;
 }
 
 }  // namespace bedrock::cipher

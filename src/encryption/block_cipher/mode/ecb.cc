@@ -2,18 +2,19 @@
 
 namespace bedrock::cipher::op_mode {
 
-ErrorStatus ECB::Process(const std::span<const std::uint8_t> input,
-                         std::span<std::uint8_t> output) {
-  std::uint32_t block_size = this->cipher->GetBlockSize() / 8;
-  if (!this->cipher->IsValid() || input.size() != block_size ||
-      output.size() != block_size) {
+ErrorStatus ECB::Process(
+    std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+    ModeContext& ctx, const std::span<const std::uint8_t> input,
+    std::span<std::uint8_t> output) {
+  if (impl == nullptr || !ctx.IsValid() || input.size() != ctx.block_size / 8 ||
+      output.size() != ctx.block_size / 8) {
     return ErrorStatus::kFailure;
   }
 
-  if (this->mode == CipherMode::Encrypt) {
-    this->cipher->Encrypt(input, output);
+  if (ctx.mode == CipherMode::Encrypt) {
+    impl->Encrypt(ctx, input, output);
   } else {
-    this->cipher->Decrypt(input, output);
+    impl->Decrypt(ctx, input, output);
   }
 
   return ErrorStatus::kSuccess;
