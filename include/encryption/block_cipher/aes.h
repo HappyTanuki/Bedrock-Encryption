@@ -24,6 +24,8 @@ class AESImpl : public BlockCipherAlgorithm {
   ErrorStatus KeyExpantion(std::span<const std::uint8_t> key,
                            BlockCipherCTX& ctx) const noexcept override = 0;
 
+  const char* GetAlgorithmName() const noexcept override { return "AES"; }
+
  protected:
   virtual void EncryptImpl(BlockCipherCTX& ctx,
                            std::span<const std::uint8_t> block,

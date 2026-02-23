@@ -1,18 +1,17 @@
-#ifndef FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_CTR_H_
-#define FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_CTR_H_
+#ifndef FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_OPENSSL_H_
+#define FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_OPENSSL_H_
 
 #include "operation.h"
 
 namespace bedrock::cipher::op_mode {
 
-class CTR : public OperationMode {
+// openssl 운영 모드
+class OPENSSL : public OperationMode {
  public:
-  CTR() { algorithm_name = "CTR"; }
-
   ErrorStatus Process(
       std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
       ModeContext& ctx, const std::span<const std::uint8_t> input,
-      std::span<std::uint8_t> output, bool final = true) override;
+      std::span<std::uint8_t> output, bool final = true) final override;
 };
 
 };  // namespace bedrock::cipher::op_mode

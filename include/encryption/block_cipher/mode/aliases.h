@@ -13,9 +13,10 @@ class AES_CBC {
   AES_CBC(const std::span<const std::uint8_t> key,
           const std::span<const std::uint8_t> iv)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("CBC")) {
-    op_mode::CTXController::Create(impl, ctx, key, iv,
-                                   op_mode::CipherMode::Encrypt, 0);
+        mode_impl(op_mode::ImplPicker::PickImpl("CBC")),
+        ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
+    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
+                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
   }
   virtual ~AES_CBC();
 
@@ -25,7 +26,7 @@ class AES_CBC {
   }
 
   AES_CBC& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.mode = _mode;
+    ctx.SetMode(_mode);
     return *this;
   }
 
@@ -41,9 +42,10 @@ class AES_CTR {
   AES_CTR(const std::span<const std::uint8_t> key,
           const std::span<const std::uint8_t> iv)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("CTR")) {
-    op_mode::CTXController::Create(impl, ctx, key, iv,
-                                   op_mode::CipherMode::Encrypt, 64);
+        mode_impl(op_mode::ImplPicker::PickImpl("CTR")),
+        ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
+    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
+                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
   }
   virtual ~AES_CTR();
 
@@ -53,7 +55,7 @@ class AES_CTR {
   }
 
   AES_CTR& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.mode = _mode;
+    ctx.SetMode(_mode);
     return *this;
   }
 
@@ -68,9 +70,10 @@ class AES_ECB {
  public:
   AES_ECB(const std::span<const std::uint8_t> key)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("ECB")) {
-    op_mode::CTXController::Create(impl, ctx, key, {},
-                                   op_mode::CipherMode::Encrypt, 0);
+        mode_impl(op_mode::ImplPicker::PickImpl("ECB")),
+        ctx(impl, key, {}, op_mode::CipherMode::Encrypt, 0) {
+    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
+                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
   }
   virtual ~AES_ECB();
 
@@ -80,7 +83,7 @@ class AES_ECB {
   }
 
   AES_ECB& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.mode = _mode;
+    ctx.SetMode(_mode);
     return *this;
   }
 

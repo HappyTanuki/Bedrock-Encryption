@@ -1,6 +1,8 @@
 #ifndef BEDROCK_ENCRYPTION_ENCRYPTION_INTERFACES_H_
 #define BEDROCK_ENCRYPTION_ENCRYPTION_INTERFACES_H_
 
+#include <openssl/evp.h>
+
 #include <array>
 #include <cstdint>
 #include <span>
@@ -14,6 +16,10 @@ enum class ErrorStatus { kSuccess, kFailure };
 
 class BlockCipherCTX : public Validatable {
  public:
+  BlockCipherCTX() = default;
+  BlockCipherCTX(const BlockCipherCTX&) = delete;
+  BlockCipherCTX& operator=(const BlockCipherCTX&) = delete;
+
   virtual ~BlockCipherCTX() override;
   // unit is bit
   std::uint32_t key_size = 0;
@@ -23,6 +29,9 @@ class BlockCipherCTX : public Validatable {
   alignas(16) std::vector<std::array<std::uint8_t, 16>> dec_round_keys;
 
   alignas(16) std::vector<std::uint8_t> state;
+
+  ::EVP_CIPHER_CTX* evp_ctx = nullptr;
+  ::EVP_CIPHER* evp_cipher = nullptr;
 
   std::uint32_t Nr = 0;
   std::uint32_t Nk = 0;
@@ -57,6 +66,7 @@ class BlockCipherAlgorithm {
                                    BlockCipherCTX& ctx) const noexcept = 0;
 
   virtual std::uint32_t GetBlockSize() const noexcept = 0;
+  virtual const char* GetAlgorithmName() const noexcept = 0;
 };
 
 }  // namespace bedrock::cipher
