@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "encryption/block_cipher/mode/aliases.h"
+#include "encryption/cipher/mode/aliases.h"
 #include "encryption/util/helper.h"
 #include "encryption/util/nist_testvector_parser.h"
 

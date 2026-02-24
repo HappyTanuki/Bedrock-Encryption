@@ -1,4 +1,4 @@
-#include "encryption/block_cipher/mode/openssl.h"
+#include "encryption/cipher/mode/openssl.h"
 
 namespace bedrock::cipher::op_mode {
 

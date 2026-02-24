@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "encryption/block_cipher/aes.h"
+#include "encryption/cipher/aes.h"
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher {

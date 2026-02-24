@@ -1,9 +1,9 @@
-#ifndef FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_ALIASES_H_
-#define FILE_ENCRYPT_UTIL_INCLUDEALGORITHM_BLOCK_CIPHER_MODE_ALIASES_H_
+#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
+#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
 #include <memory>
 
 #include "../aes.h"
-#include "encryption/block_cipher/mode/operation.h"
+#include "encryption/cipher/mode/operation.h"
 
 namespace bedrock::cipher {
 

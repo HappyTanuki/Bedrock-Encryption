@@ -1,4 +1,4 @@
-#include "encryption/block_cipher/mode/cbc.h"
+#include "encryption/cipher/mode/cbc.h"
 
 #include <openssl/evp.h>
 

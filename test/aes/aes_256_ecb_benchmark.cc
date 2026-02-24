@@ -1,8 +1,8 @@
 #include <ctime>
 #include <iostream>
 
-#include "encryption/block_cipher/mode/aliases.h"
-#include "encryption/block_cipher/mode/operation.h"
+#include "encryption/cipher/mode/aliases.h"
+#include "encryption/cipher/mode/operation.h"
 
 #define KEY_BIT 256
 #define ALGORITHM bedrock::cipher::AES_ECB

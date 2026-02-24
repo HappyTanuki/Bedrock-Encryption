@@ -7,7 +7,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "encryption/block_cipher/mode/aliases.h"
+#include "encryption/cipher/mode/aliases.h"
 
 #define ALGORITHM bedrock::cipher::AES_ECB
 

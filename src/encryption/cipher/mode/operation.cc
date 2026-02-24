@@ -1,12 +1,12 @@
-#include "encryption/block_cipher/mode/operation.h"
+#include "encryption/cipher/mode/operation.h"
 
 #include <openssl/evp.h>
 
-#include "encryption/block_cipher/aes.h"
-#include "encryption/block_cipher/mode/cbc.h"
-#include "encryption/block_cipher/mode/ctr.h"
-#include "encryption/block_cipher/mode/ecb.h"
-#include "encryption/block_cipher/mode/openssl.h"
+#include "encryption/cipher/aes.h"
+#include "encryption/cipher/mode/cbc.h"
+#include "encryption/cipher/mode/ctr.h"
+#include "encryption/cipher/mode/ecb.h"
+#include "encryption/cipher/mode/openssl.h"
 
 namespace bedrock::cipher::op_mode {
 
@@ -20,9 +20,8 @@ ModeContext::ModeContext(
 
   if (use_openssl) {
     evp_ctx = ::EVP_CIPHER_CTX_new();
-  }
-
-  if (AESCTXController::Create(impl, key, *this) != ErrorStatus::kSuccess) {
+  } else if (AESCTXController::Create(impl, key, *this) !=
+             ErrorStatus::kSuccess) {
     return;
   }
 

@@ -1,4 +1,4 @@
-#include "encryption/block_cipher/mode/aliases.h"
+#include "encryption/cipher/mode/aliases.h"
 
 namespace bedrock::cipher {
 
