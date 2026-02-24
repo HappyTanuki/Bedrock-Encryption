@@ -15,7 +15,7 @@ class ModeContext : public BlockCipherCTX {
  public:
   ModeContext(std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
               std::span<const std::uint8_t> key,
-              std::span<const std::uint8_t> iv, CipherMode mode,
+              std::span<const std::uint8_t> iv, CipherMode mode_in,
               std::uint32_t m_bits = 64, bool use_openssl = true) noexcept;
   virtual ~ModeContext() override;
 
@@ -51,7 +51,7 @@ class OperationMode {
 class ImplPicker {
  public:
   static std::shared_ptr<OperationMode> PickImpl(std::string mode,
-                                                 bool use_openssl = false);
+                                                 bool use_openssl = true);
 
  private:
   ImplPicker();

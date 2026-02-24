@@ -13,21 +13,21 @@ namespace bedrock::cipher::op_mode {
 ModeContext::ModeContext(
     std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
     std::span<const std::uint8_t> key, std::span<const std::uint8_t> iv_in,
-    CipherMode mode, std::uint32_t m_bits, bool use_openssl) noexcept {
+    CipherMode mode_in, std::uint32_t m_bits, bool use_openssl) noexcept {
   if (impl == nullptr) {
     return;
   }
 
   if (use_openssl) {
     evp_ctx = ::EVP_CIPHER_CTX_new();
-  } else if (AESCTXController::Create(impl, key, *this) !=
-             ErrorStatus::kSuccess) {
+  }
+  if (AESCTXController::Create(impl, key, *this) != ErrorStatus::kSuccess) {
     return;
   }
 
   iv = std::vector<std::uint8_t>(iv_in.begin(), iv_in.end());
   iv.resize(block_size / 8);
-  mode = mode;
+  mode = mode_in;
   m_bits = m_bits;
   prev_vector = std::vector<std::uint8_t>(iv.begin(), iv.end());
   prev_vector.resize(block_size / 8);
@@ -54,6 +54,10 @@ ModeContext::ModeContext(
 }
 ErrorStatus ModeContext::EVPInit(const std::string algorithm_name) noexcept {
   if (algorithm_name.empty()) {
+    return ErrorStatus::kFailure;
+  }
+
+  if (evp_ctx == nullptr) {
     return ErrorStatus::kFailure;
   }
 
@@ -103,28 +107,31 @@ ErrorStatus ModeContext::SetIV(
 
   return ErrorStatus::kSuccess;
 }
-ErrorStatus ModeContext::SetMode(CipherMode mode, bool padding) noexcept {
+ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
   if (!IsValid()) {
     return ErrorStatus::kFailure;
   }
 
-  EVP_CIPHER_CTX_cleanup(evp_ctx);
+  if (evp_ctx != nullptr) {
+    EVP_CIPHER_CTX_cleanup(evp_ctx);
 
-  if (mode == bedrock::cipher::op_mode::CipherMode::Encrypt) {
-    ::EVP_EncryptInit_ex2(evp_ctx, evp_cipher, enc_round_keys[0].data(),
-                          iv.data(), nullptr);
-  } else {
-    ::EVP_DecryptInit_ex2(evp_ctx, evp_cipher, enc_round_keys[0].data(),
-                          iv.data(), nullptr);
-  }
-  if (!padding) {
-    OSSL_PARAM padding_param[2] = {OSSL_PARAM_construct_uint("padding", 0),
-                                   OSSL_PARAM_END};
+    if (mode_in == bedrock::cipher::op_mode::CipherMode::Encrypt) {
+      ::EVP_EncryptInit_ex2(evp_ctx, evp_cipher, enc_round_keys[0].data(),
+                            iv.data(), nullptr);
+    } else {
+      ::EVP_DecryptInit_ex2(evp_ctx, evp_cipher, enc_round_keys[0].data(),
+                            iv.data(), nullptr);
+    }
+    if (!padding) {
+      std::uint32_t padding_value = 0;
+      OSSL_PARAM padding_param[2] = {
+          OSSL_PARAM_construct_uint("padding", &padding_value), OSSL_PARAM_END};
 
-    ::EVP_CIPHER_CTX_set_params(evp_ctx, padding_param);
+      ::EVP_CIPHER_CTX_set_params(evp_ctx, padding_param);
+    }
+    this->padding = padding;
   }
-  this->padding = padding;
-  this->mode = mode;
+  this->mode = mode_in;
 
   return ErrorStatus::kSuccess;
 }
@@ -136,15 +143,15 @@ std::shared_ptr<OperationMode> ImplPicker::PickImpl(std::string mode,
                                                     bool use_openssl) {
   std::shared_ptr<OperationMode> impl;
 
-  if (mode == "CBC") {
+  if (use_openssl) {
+    impl = std::make_shared<OPENSSL>();
+    impl->algorithm_name = mode;
+  } else if (mode == "CBC") {
     impl = std::make_shared<CBC>();
   } else if (mode == "CTR") {
     impl = std::make_shared<CTR>();
   } else if (mode == "ECB") {
     impl = std::make_shared<ECB>();
-  } else if (use_openssl) {
-    impl = std::make_shared<OPENSSL>();
-    impl->algorithm_name = mode;
   } else {
     return nullptr;
   }
