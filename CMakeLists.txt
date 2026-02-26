@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
+include(ExternalProject)
+include(ProcessorCount)
 
 if(NOT DEFINED ROOT_PROJECT_NAME)
     set(ROOT_PROJECT_NAME "Root")
@@ -21,197 +23,190 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Common)
 
-# find_package(OpenSSL REQUIRED)
-set(OpenSSL_FOUND false)
+ProcessorCount(NCPU)
 
-if (NOT OpenSSL_FOUND)
-    include(ExternalProject)
-    include(ProcessorCount)
-    ProcessorCount(NCPU)
-
-    if(NCPU EQUAL 0)
-        set(NCPU 1)
-    endif()
-
-    set(OPENSSL_CONFIG_DIR_NAME OpenSSL-Config)
-    set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL)
-    set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL-Install)
-    set(OPENSSL_CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/${OPENSSL_CONFIG_DIR_NAME})
-    set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
-    set(OPENSSL_LIB_DIR ${OPENSSL_INSTALL_DIR}/lib)
-    set(OPENSSL_BIN_DIR ${OPENSSL_INSTALL_DIR}/bin)
-    set(OPENSSL_VERSION openssl-3.6.1)
-    set(OPENSSL_DEPENDENCY "")
-    set(OPENSSL_CONFIGURE_COMMAND "")
-    set(OPENSSL_BUILD_COMMAND "")
-    set(OPENSSL_INSTALL_COMMAND "")
-
-    if(NOT WIN32)
-        set(OPENSSL_RUNTIME_LIBS "${OPENSSL_LIB_DIR}/libcrypto.so" "${OPENSSL_LIB_DIR}/libssl.so")
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll" "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
-        set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll")
-        set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
-    else()
-        set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll" "${OPENSSL_BIN_DIR}/libssl-3.dll")
-        set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll")
-        set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3.dll")
-    endif()
-
-    foreach(f ${OPENSSL_RUNTIME_LIBS})
-        if(NOT EXISTS ${f})
-            file(WRITE "${f}" "")
-        endif()
-    endforeach()
-
-    if(NOT WIN32)
-        set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
-        set(OPENSSL_BUILD_COMMAND make -j${NCPU})
-        set(OPENSSL_INSTALL_COMMAND make -j${NCPU} install)
-        set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.so")
-        set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.so")
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
-        ExternalProject_Add(
-            Perl
-            URL https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-        )
-        ExternalProject_Get_Property(Perl SOURCE_DIR)
-        set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
-        ExternalProject_Add(
-            Nasm
-            URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-        )
-        ExternalProject_Get_Property(Nasm SOURCE_DIR)
-        set(NASM_BIN_DIR "${SOURCE_DIR}")
-
-        function(OPENSSL_DEPENDENCY_INJECT out_var)
-            set(cmd ${ARGN})
-
-            set(${out_var}
-                ${CMAKE_COMMAND} -E env
-                --modify PATH=path_list_append:${PERL_BIN_DIR}
-                --modify PATH=path_list_append:${NASM_BIN_DIR}
-                CL=/MP
-                --
-                cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && ${cmd}"
-                PARENT_SCOPE
-            )
-        endfunction()
-
-        set(OPENSSL_DEPENDENCY Perl Nasm)
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_CONFIGURE_COMMAND "perl ${OPENSSL_SOURCE_DIR}/Configure VC-WIN64A")
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_BUILD_COMMAND "nmake")
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_INSTALL_COMMAND "nmake install")
-        set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.lib")
-        set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.lib")
-    else()
-        ExternalProject_Add(
-            Perl
-            URL https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-        )
-        ExternalProject_Get_Property(Perl SOURCE_DIR)
-        set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
-        ExternalProject_Add(
-            Nasm
-            URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-            INSTALL_COMMAND ""
-        )
-        ExternalProject_Get_Property(Nasm SOURCE_DIR)
-        set(NASM_BIN_DIR "${SOURCE_DIR}")
-
-        function(OPENSSL_DEPENDENCY_INJECT out_var)
-            set(cmd ${ARGN})
-
-            set(${out_var}
-                ${CMAKE_COMMAND} -E env
-                --modify PATH=path_list_append:${PERL_BIN_DIR}
-                --modify PATH=path_list_append:${NASM_BIN_DIR}
-                CL=/MP
-                --
-                cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && ${cmd}"
-                PARENT_SCOPE
-            )
-        endfunction()
-
-        set(OPENSSL_DEPENDENCY Perl Nasm)
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_CONFIGURE_COMMAND "perl ${OPENSSL_SOURCE_DIR}/Configure VC-WIN32")
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_BUILD_COMMAND "nmake")
-        OPENSSL_DEPENDENCY_INJECT(OPENSSL_INSTALL_COMMAND "nmake install")
-        set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.lib")
-        set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.lib")
-    endif()
-    
-    ExternalProject_Add(
-        OpenSSL
-
-        DEPENDS ${OPENSSL_DEPENDENCY}
-
-        GIT_REPOSITORY https://github.com/openssl/openssl.git
-        GIT_TAG ${OPENSSL_VERSION}
-
-        USES_TERMINAL_DOWNLOAD TRUE
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD TRUE
-        USES_TERMINAL_INSTALL TRUE
-
-        CONFIGURE_COMMAND
-            ${OPENSSL_CONFIGURE_COMMAND}
-            --libdir=lib
-            --prefix=${OPENSSL_INSTALL_DIR}
-            --openssldir=${OPENSSL_CONFIG_DIR}
-
-        BUILD_COMMAND
-            ${OPENSSL_BUILD_COMMAND}
-
-        TEST_COMMAND ""
-        UPDATE_COMMAND ""
-
-        INSTALL_COMMAND
-            ${OPENSSL_INSTALL_COMMAND}
-    )
-
-    # We cannot use find_library because ExternalProject_Add() is performed at build time.
-    # And to please the property INTERFACE_INCLUDE_DIRECTORIES,
-    # we make the include directory in advance.
-    ExternalProject_Get_Property(OpenSSL BINARY_DIR)
-    if(NOT IS_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-        file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
-    endif()
-
-    if(NOT EXISTS ${OPENSSL_CRYPTO_LIB})
-        file(WRITE ${OPENSSL_CRYPTO_LIB} "")
-    endif()
-    if(NOT EXISTS ${OPENSSL_SSL_LIB})
-        file(WRITE ${OPENSSL_SSL_LIB} "")
-    endif()
-
-    add_library(OpenSSL::SSL SHARED IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_SSL_LIBS})
-    set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_IMPLIB ${OPENSSL_SSL_LIB})
-    add_dependencies(OpenSSL::SSL OpenSSL)
-
-    add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
-    set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
-    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_CRYPTO_LIBS})
-    set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_IMPLIB ${OPENSSL_CRYPTO_LIB})
-    add_dependencies(OpenSSL::Crypto OpenSSL)
+if(NCPU EQUAL 0)
+    set(NCPU 1)
 endif()
+
+set(OPENSSL_CONFIG_DIR_NAME OpenSSL-Config)
+set(OPENSSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL)
+set(OPENSSL_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/OpenSSL-Install)
+set(OPENSSL_CONFIG_DIR ${CMAKE_CURRENT_BINARY_DIR}/OpenSSL-prefix/src/${OPENSSL_CONFIG_DIR_NAME})
+set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
+set(OPENSSL_LIB_DIR ${OPENSSL_INSTALL_DIR}/lib)
+set(OPENSSL_BIN_DIR ${OPENSSL_INSTALL_DIR}/bin)
+set(OPENSSL_VERSION openssl-3.6.1)
+set(OPENSSL_DEPENDENCY "")
+set(OPENSSL_CONFIGURE_COMMAND "")
+set(OPENSSL_BUILD_COMMAND "")
+set(OPENSSL_INSTALL_COMMAND "")
+
+if(NOT WIN32)
+    set(OPENSSL_RUNTIME_LIBS "${OPENSSL_LIB_DIR}/libcrypto.so" "${OPENSSL_LIB_DIR}/libssl.so")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll" "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
+    set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll")
+    set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
+else()
+    set(OPENSSL_RUNTIME_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll" "${OPENSSL_BIN_DIR}/libssl-3.dll")
+    set(OPENSSL_RUNTIME_CRYPTO_LIBS "${OPENSSL_BIN_DIR}/libcrypto-3.dll")
+    set(OPENSSL_RUNTIME_SSL_LIBS "${OPENSSL_BIN_DIR}/libssl-3.dll")
+endif()
+
+foreach(f ${OPENSSL_RUNTIME_LIBS})
+    if(NOT EXISTS ${f})
+        file(WRITE "${f}" "")
+    endif()
+endforeach()
+
+if(NOT WIN32)
+    set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_SOURCE_DIR}/config)
+    set(OPENSSL_BUILD_COMMAND make -j${NCPU})
+    set(OPENSSL_INSTALL_COMMAND make -j${NCPU} install)
+    set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.so")
+    set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.so")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
+    ExternalProject_Add(
+        Perl
+        URL https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(Perl SOURCE_DIR)
+    set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
+    ExternalProject_Add(
+        Nasm
+        URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(Nasm SOURCE_DIR)
+    set(NASM_BIN_DIR "${SOURCE_DIR}")
+
+    function(OPENSSL_DEPENDENCY_INJECT out_var)
+        set(cmd ${ARGN})
+
+        set(${out_var}
+            ${CMAKE_COMMAND} -E env
+            --modify PATH=path_list_append:${PERL_BIN_DIR}
+            --modify PATH=path_list_append:${NASM_BIN_DIR}
+            CL=/MP
+            --
+            cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && ${cmd}"
+            PARENT_SCOPE
+        )
+    endfunction()
+
+    set(OPENSSL_DEPENDENCY Perl Nasm)
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_CONFIGURE_COMMAND "perl ${OPENSSL_SOURCE_DIR}/Configure VC-WIN64A")
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_BUILD_COMMAND "nmake")
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_INSTALL_COMMAND "nmake install")
+    set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.lib")
+    set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.lib")
+else()
+    ExternalProject_Add(
+        Perl
+        URL https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(Perl SOURCE_DIR)
+    set(PERL_BIN_DIR "${SOURCE_DIR}/perl/bin")
+    ExternalProject_Add(
+        Nasm
+        URL https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(Nasm SOURCE_DIR)
+    set(NASM_BIN_DIR "${SOURCE_DIR}")
+
+    function(OPENSSL_DEPENDENCY_INJECT out_var)
+        set(cmd ${ARGN})
+
+        set(${out_var}
+            ${CMAKE_COMMAND} -E env
+            --modify PATH=path_list_append:${PERL_BIN_DIR}
+            --modify PATH=path_list_append:${NASM_BIN_DIR}
+            CL=/MP
+            --
+            cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && ${cmd}"
+            PARENT_SCOPE
+        )
+    endfunction()
+
+    set(OPENSSL_DEPENDENCY Perl Nasm)
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_CONFIGURE_COMMAND "perl ${OPENSSL_SOURCE_DIR}/Configure VC-WIN32")
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_BUILD_COMMAND "nmake")
+    OPENSSL_DEPENDENCY_INJECT(OPENSSL_INSTALL_COMMAND "nmake install")
+    set(OPENSSL_CRYPTO_LIB "${OPENSSL_LIB_DIR}/libcrypto.lib")
+    set(OPENSSL_SSL_LIB "${OPENSSL_LIB_DIR}/libssl.lib")
+endif()
+
+ExternalProject_Add(
+    OpenSSL
+
+    DEPENDS ${OPENSSL_DEPENDENCY}
+
+    GIT_REPOSITORY https://github.com/openssl/openssl.git
+    GIT_TAG ${OPENSSL_VERSION}
+
+    USES_TERMINAL_DOWNLOAD TRUE
+    USES_TERMINAL_CONFIGURE TRUE
+    USES_TERMINAL_BUILD TRUE
+    USES_TERMINAL_INSTALL TRUE
+
+    CONFIGURE_COMMAND
+        ${OPENSSL_CONFIGURE_COMMAND}
+        --libdir=lib
+        --prefix=${OPENSSL_INSTALL_DIR}
+        --openssldir=${OPENSSL_CONFIG_DIR}
+
+    BUILD_COMMAND
+        ${OPENSSL_BUILD_COMMAND}
+
+    TEST_COMMAND ""
+    UPDATE_COMMAND ""
+
+    INSTALL_COMMAND
+        ${OPENSSL_INSTALL_COMMAND}
+)
+
+# We cannot use find_library because ExternalProject_Add() is performed at build time.
+# And to please the property INTERFACE_INCLUDE_DIRECTORIES,
+# we make the include directory in advance.
+ExternalProject_Get_Property(OpenSSL BINARY_DIR)
+if(NOT IS_DIRECTORY ${OPENSSL_INCLUDE_DIR})
+    file(MAKE_DIRECTORY ${OPENSSL_INCLUDE_DIR})
+endif()
+
+if(NOT EXISTS ${OPENSSL_CRYPTO_LIB})
+    file(WRITE ${OPENSSL_CRYPTO_LIB} "")
+endif()
+if(NOT EXISTS ${OPENSSL_SSL_LIB})
+    file(WRITE ${OPENSSL_SSL_LIB} "")
+endif()
+
+add_library(OpenSSL::SSL SHARED IMPORTED GLOBAL)
+set_property(TARGET OpenSSL::SSL PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_SSL_LIBS})
+set_property(TARGET OpenSSL::SSL PROPERTY IMPORTED_IMPLIB ${OPENSSL_SSL_LIB})
+add_dependencies(OpenSSL::SSL OpenSSL)
+
+add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
+set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENSSL_INCLUDE_DIR})
+set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_CRYPTO_LIBS})
+set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_IMPLIB ${OPENSSL_CRYPTO_LIB})
+add_dependencies(OpenSSL::Crypto OpenSSL)
 
 file(GLOB_RECURSE SOURCES "src/*.cc")
 
@@ -274,12 +269,7 @@ if (PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS AND NOT WIN32)
   )
 endif()
 
-option(BEDROCK_ENCRYPTION_BUILD_TESTS
-  "Build Bedrock tests"
-  ${PROJECT_IS_TOP_LEVEL}
-)
-
-if (BEDROCK_ENCRYPTION_BUILD_TESTS)
+if (${PROJECT_IS_TOP_LEVEL})
   set(BUILD_TESTING ON)
 
   include(CTest)
