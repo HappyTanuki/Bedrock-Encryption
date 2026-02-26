@@ -15,7 +15,7 @@ foreach(test_src ${TEST_SOURCES})
 
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
     if(NOT WIN32)
-        target_compile_options(${test_name} PRIVATE -maes -msse2)
+        target_compile_options(${test_name} PRIVATE -maes -msse2 -mssse3 -fno-exceptions -fno-rtti)
     endif()
     add_test(NAME ${test_name} COMMAND ${test_name})
     set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

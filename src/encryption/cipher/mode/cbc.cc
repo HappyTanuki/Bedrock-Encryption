@@ -1,7 +1,5 @@
 #include "encryption/cipher/mode/cbc.h"
 
-#include <openssl/evp.h>
-
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher::op_mode {

@@ -1,7 +1,6 @@
 #ifndef BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_NIST_TESTVECTOR_PARSER_H_
 #define BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_NIST_TESTVECTOR_PARSER_H_
 
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <queue>

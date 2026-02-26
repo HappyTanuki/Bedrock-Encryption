@@ -1,9 +1,6 @@
 #ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_CBC_H_
 #define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_CBC_H_
 
-#include <cmath>
-#include <cstring>
-
 #include "operation.h"
 
 namespace bedrock::cipher::op_mode {

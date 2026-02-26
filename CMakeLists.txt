@@ -239,7 +239,7 @@ if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 if (NOT WIN32)
-    target_compile_options(${SUB_PROJECT_NAME} PRIVATE -maes -msse2)
+    target_compile_options(${SUB_PROJECT_NAME} PRIVATE -maes -msse2 -mssse3 -fno-exceptions -fno-rtti)
 else()
     add_compile_options(/utf-8)
 endif()
@@ -288,63 +288,63 @@ if (BEDROCK_ENCRYPTION_BUILD_TESTS)
   add_subdirectory(test)
 
   if (WIN32)
-        add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
-                -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-            COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
-        )
-        add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
-                -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-            COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
-        )
-    else()
-        add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
-                -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-            COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
-        )
-        add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
-                -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
-            COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
-        )
-    endif()
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_BIN_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
+    )
+  else()
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (test) (all versions)"
+    )
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DOPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}
+            -DDEST_DIR=$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake
+        COMMENT "Copying OpenSSL runtime libraries (aes test) (all versions)"
+    )
+  endif()
   
-    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-            "${CMAKE_BINARY_DIR}/test"
-        COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
-    )
-    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-            "${CMAKE_BINARY_DIR}/test/aes"
-        COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to aes test output directory"
-    )
-
-    
-    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-            "${OPENSSL_CONFIG_DIR}"
-            "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/${OPENSSL_CONFIG_DIR_NAME}"
-    COMMENT "Copying OpenSSL config directory"
-    )
-    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-            "${OPENSSL_CONFIG_DIR}"
-            "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes/${OPENSSL_CONFIG_DIR_NAME}"
-    COMMENT "Copying OpenSSL config directory"
-    )
+  add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+          "${CMAKE_BINARY_DIR}/test"
+      COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to test output directory"
+  )
+  add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+          "${CMAKE_BINARY_DIR}/test/aes"
+      COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to aes test output directory"
+  )
+  
+  
+  add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+          "${OPENSSL_CONFIG_DIR}"
+          "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/${OPENSSL_CONFIG_DIR_NAME}"
+  COMMENT "Copying OpenSSL config directory"
+  )
+  add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+          "${OPENSSL_CONFIG_DIR}"
+          "$<TARGET_FILE_DIR:${SUB_PROJECT_NAME}>/test/aes/${OPENSSL_CONFIG_DIR_NAME}"
+  COMMENT "Copying OpenSSL config directory"
+  )
 endif()
 
 add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
