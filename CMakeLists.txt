@@ -1,4 +1,9 @@
 cmake_minimum_required (VERSION 3.25)
+
+if(WIN32 AND POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+endif()
+
 set(SUB_PROJECT_NAME "Encryption")
 project(${SUB_PROJECT_NAME} LANGUAGES CXX)
 
@@ -224,6 +229,14 @@ target_include_directories(${SUB_PROJECT_NAME} SYSTEM PUBLIC ${OPENSSL_INCLUDE_D
 
 target_include_directories(${SUB_PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Add precompiled header to reduce repeated parsing of heavy headers
+if (TARGET ${SUB_PROJECT_NAME})
+    target_precompile_headers(${SUB_PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/encryption/pch.h")
+    if(MSVC)
+        target_compile_options(${SUB_PROJECT_NAME} PRIVATE /MP)
+    endif()
+endif()
+
 if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set_target_properties(${SUB_PROJECT_NAME} PROPERTIES
         BUILD_WITH_INSTALL_RPATH TRUE
@@ -259,14 +272,13 @@ if(CLANG_TIDY_EXE)
     set(CMAKE_CXX_CLANG_TIDY
     $<$<COMPILE_LANGUAGE:CXX>:clang-tidy;-checks=-*,google-readability-casting;-fix;-fix-errors>
 )
-endif()
-
-if (PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS AND NOT WIN32)
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_BINARY_DIR}/compile_commands.json
-            ${CMAKE_BINARY_DIR}/../compile_commands.json
-  )
+    if (PROJECT_IS_TOP_LEVEL AND CMAKE_EXPORT_COMPILE_COMMANDS AND NOT WIN32)
+      execute_process(
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+                ${CMAKE_BINARY_DIR}/compile_commands.json
+                ${CMAKE_BINARY_DIR}/../compile_commands.json
+      )
+    endif()
 endif()
 
 if (${PROJECT_IS_TOP_LEVEL})

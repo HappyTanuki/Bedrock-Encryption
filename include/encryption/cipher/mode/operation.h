@@ -4,6 +4,7 @@
 #include <memory>
 #include <span>
 #include <vector>
+#include <string>
 
 #include "encryption/interfaces.h"
 

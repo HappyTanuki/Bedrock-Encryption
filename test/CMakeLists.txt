@@ -4,6 +4,13 @@ foreach(test_src ${TEST_SOURCES})
     get_filename_component(test_name ${test_src} NAME_WE)
     add_executable(${test_name} ${test_src})
 
+    if (TARGET ${test_name})
+        target_precompile_headers(${test_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include/encryption/pch.h")
+        if(MSVC)
+            target_compile_options(${test_name} PRIVATE /MP)
+        endif()
+    endif()
+
     if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
         set_target_properties(${test_name} PROPERTIES
             BUILD_WITH_INSTALL_RPATH TRUE

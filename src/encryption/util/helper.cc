@@ -1,8 +1,9 @@
 #include "encryption/util/helper.h"
 
+#include "encryption/pch.h"
+
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <iomanip>
 #include <sstream>
 #include <vector>
