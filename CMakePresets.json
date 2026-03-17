@@ -58,12 +58,16 @@
       }
     },
     {
-      "name": "x64",
+      "name": "x64Windows",
       "hidden": true,
       "architecture": {
         "value": "x64",
         "strategy": "external"
-      },
+      }
+    },
+    {
+      "name": "x64Linux",
+      "hidden": true,
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "-m64"
       }
@@ -149,7 +153,7 @@
       "inherits": [
         "Windows-Build",
         "Debug",
-        "x64",
+        "x64Windows",
         "MDd"
       ]
     },
@@ -169,7 +173,7 @@
       "inherits": [
         "Windows-Build",
         "Release",
-        "x64",
+        "x64Windows",
         "MD"
       ]
     },
@@ -189,7 +193,7 @@
       "inherits": [
         "Windows-Build",
         "Debug",
-        "x64",
+        "x64Windows",
         "MTd"
       ]
     },
@@ -209,7 +213,7 @@
       "inherits": [
         "Windows-Build",
         "Release",
-        "x64",
+        "x64Windows",
         "MT"
       ]
     },
@@ -228,7 +232,7 @@
       "displayName": "Clang x64",
       "inherits": [
         "Linux-Clang-Build",
-        "x64"
+        "x64Linux"
       ]
     },
     {
@@ -236,7 +240,7 @@
       "displayName": "GCC x64",
       "inherits": [
         "Linux-GCC-Build",
-        "x64"
+        "x64Linux"
       ]
     }
   ],
