@@ -1,4 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
+﻿#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
 #define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
 #include <memory>
 
@@ -13,7 +13,7 @@ class AES_CBC {
   AES_CBC(const std::span<const std::uint8_t> key,
           const std::span<const std::uint8_t> iv)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("CBC")),
+        mode_impl(op_mode::PickImpl("CBC")),
         ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
     ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
                 std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
@@ -42,7 +42,7 @@ class AES_CTR {
   AES_CTR(const std::span<const std::uint8_t> key,
           const std::span<const std::uint8_t> iv)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("CTR")),
+        mode_impl(op_mode::PickImpl("CTR")),
         ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
     ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
                 std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
@@ -70,7 +70,7 @@ class AES_ECB {
  public:
   AES_ECB(const std::span<const std::uint8_t> key)
       : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::ImplPicker::PickImpl("ECB")),
+        mode_impl(op_mode::PickImpl("ECB")),
         ctx(impl, key, {}, op_mode::CipherMode::Encrypt, 0) {
     ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
                 std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);

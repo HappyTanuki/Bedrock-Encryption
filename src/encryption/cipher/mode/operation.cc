@@ -1,4 +1,4 @@
-#include "encryption/cipher/mode/operation.h"
+﻿#include "encryption/cipher/mode/operation.h"
 
 #include <openssl/evp.h>
 
@@ -139,7 +139,7 @@ ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
 ModeContext::~ModeContext() = default;
 OperationMode::~OperationMode() = default;
 
-std::shared_ptr<OperationMode> ImplPicker::PickImpl(std::string mode,
+std::shared_ptr<OperationMode> PickImpl(std::string mode,
                                                     bool use_openssl) {
   std::shared_ptr<OperationMode> impl;
 
