@@ -73,12 +73,16 @@
       }
     },
     {
-      "name": "x86",
+      "name": "x86Windows",
       "hidden": true,
       "architecture": {
         "value": "x86",
         "strategy": "external"
-      },
+      }
+    },
+    {
+      "name": "x86Linux",
+      "hidden": true,
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "-m32",
         "CMAKE_EXE_LINKER_FLAGS": "-m32",
@@ -163,7 +167,7 @@
       "inherits": [
         "Windows-Build",
         "Debug",
-        "x86",
+        "x86Windows",
         "MDd"
       ]
     },
@@ -183,7 +187,7 @@
       "inherits": [
         "Windows-Build",
         "Release",
-        "x86",
+        "x86Windows",
         "MD"
       ]
     },
@@ -203,7 +207,7 @@
       "inherits": [
         "Windows-Build",
         "Debug",
-        "x86",
+        "x86Windows",
         "MTd"
       ]
     },
@@ -223,7 +227,7 @@
       "inherits": [
         "Windows-Build",
         "Release",
-        "x86",
+        "x86Windows",
         "MT"
       ]
     },

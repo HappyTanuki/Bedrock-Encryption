@@ -180,7 +180,8 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
       // _mm_aeskeygenassist는 index 3을 참조하므로 W5를 끝으로 보냄
       __m128i keygen_src = _mm_shuffle_epi32(y, _MM_SHUFFLE(1, 1, 1, 1));
       assist = AESKeygenAssist(keygen_src, i + 1);
-      assist = _mm_shuffle_epi32(assist, _MM_SHUFFLE(1, 1, 1, 1));  // 결과 전파
+      // 결과 전파
+      assist = _mm_shuffle_epi32(assist, _MM_SHUFFLE(1, 1, 1, 1));
 
       // 2. W6-W9 계산 (기존 W0-W3인 x와 assist 활용)
       __m128i tmp = _mm_slli_si128(x, 4);
@@ -211,9 +212,11 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
     }
   }
 
+  __m128i tmp;
   for (int i = 1; i < Nr; ++i) {
-    reinterpret_cast<__m128i*>(ctx.dec_round_keys.data())[i] = _mm_aesimc_si128(
-        reinterpret_cast<__m128i*>(ctx.enc_round_keys.data())[i]);
+    tmp = _mm_loadu_si128(&reinterpret_cast<__m128i*>(ctx.enc_round_keys.data())[i]);
+    tmp = _mm_aesimc_si128(tmp);
+    _mm_storeu_si128(&reinterpret_cast<__m128i*>(ctx.dec_round_keys.data())[i], tmp);
   }
   ctx.dec_round_keys[0] = ctx.enc_round_keys[0];
   ctx.dec_round_keys[Nr] = ctx.enc_round_keys[Nr];
