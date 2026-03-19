@@ -113,6 +113,10 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
         URL                        https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
 
         USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_CONFIGURE    ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_BUILD        ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_TEST         ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_INSTALL      ${PROJECT_IS_TOP_LEVEL}
 
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
@@ -127,6 +131,10 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
         URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
 
         USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_CONFIGURE    ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_BUILD        ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_TEST         ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_INSTALL      ${PROJECT_IS_TOP_LEVEL}
 
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
@@ -144,7 +152,7 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
                 --modify PATH=path_list_append:${NASM_BIN_DIR}
                 CL=/MP
             --
-            cmd /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && ${cmd}"
+            cmd /Q /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && ${cmd}"
             PARENT_SCOPE
         )
     endfunction()
@@ -163,6 +171,10 @@ else()
         URL                        https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
 
         USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_CONFIGURE    ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_BUILD        ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_TEST         ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_INSTALL      ${PROJECT_IS_TOP_LEVEL}
 
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
@@ -177,6 +189,10 @@ else()
         URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
 
         USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_CONFIGURE    ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_BUILD        ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_TEST         ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_INSTALL      ${PROJECT_IS_TOP_LEVEL}
 
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
@@ -194,7 +210,7 @@ else()
                 --modify PATH=path_list_append:${NASM_BIN_DIR}
                 CL=/MP
             --
-            cmd /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && ${cmd}"
+            cmd /Q /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && ${cmd}"
             PARENT_SCOPE
         )
     endfunction()
