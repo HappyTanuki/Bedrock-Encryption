@@ -262,7 +262,9 @@ ExternalProject_Add(
 
 ExternalProject_Add_Step(OpenSSL pre_build_log
     COMMAND ${CMAKE_COMMAND} -E echo "Building OpenSSL..."
-    DEPENDEES configure
+    DEPENDEES download
+    DEPENDERS configure
+    ALWAYS 1
 )
 
 # ============================================================
