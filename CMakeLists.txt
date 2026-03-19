@@ -295,13 +295,6 @@ ExternalProject_Add(
     INSTALL_COMMAND ${OPENSSL_INSTALL_COMMAND}
 )
 
-ExternalProject_Add_Step(OpenSSL pre_build_log
-    COMMAND ${CMAKE_COMMAND} -E echo "Building OpenSSL..."
-    DEPENDEES download
-    DEPENDERS configure
-    ALWAYS 1
-)
-
 # ============================================================
 # OpenSSL – IMPORTED Targets
 # (ExternalProject runs at build time, so we pre-create paths
