@@ -95,7 +95,7 @@ endforeach()
 set(OPENSSL_DEPENDENCY        "")
 set(OPENSSL_CONFIGURE_COMMAND "")
 set(OPENSSL_BUILD_COMMAND     "")
-set(OPENSSL_TEST_COMMAND     "")
+set(OPENSSL_TEST_COMMAND      "")
 set(OPENSSL_INSTALL_COMMAND   "")
 
 if(NOT WIN32)
@@ -111,6 +111,9 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
     ExternalProject_Add(
         Perl
         URL                        https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
+
+        USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
         BUILD_COMMAND              ""
@@ -122,6 +125,9 @@ elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
     ExternalProject_Add(
         Nasm
         URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
+
+        USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
         BUILD_COMMAND              ""
@@ -155,6 +161,9 @@ else()
     ExternalProject_Add(
         Perl
         URL                        https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
+
+        USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
         BUILD_COMMAND              ""
@@ -166,6 +175,9 @@ else()
     ExternalProject_Add(
         Nasm
         URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
+
+        USES_TERMINAL_DOWNLOAD     ${PROJECT_IS_TOP_LEVEL}
+
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND          ""
         BUILD_COMMAND              ""
@@ -230,6 +242,11 @@ ExternalProject_Add(
     TEST_COMMAND    ${OPENSSL_TEST_COMMAND}
     UPDATE_COMMAND  ""
     INSTALL_COMMAND ${OPENSSL_INSTALL_COMMAND}
+)
+
+ExternalProject_Add_Step(OpenSSL pre_build_log
+    COMMAND ${CMAKE_COMMAND} -E echo "Building OpenSSL..."
+    DEPENDEES configure
 )
 
 # ============================================================
