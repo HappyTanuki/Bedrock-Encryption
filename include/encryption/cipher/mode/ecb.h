@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ECB_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ECB_H_
-
+﻿#pragma once
 #include "operation.h"
 
 namespace bedrock::cipher::op_mode {
@@ -16,5 +14,3 @@ class ECB : public OperationMode {
 };
 
 }  // namespace bedrock::cipher::op_mode
-
-#endif

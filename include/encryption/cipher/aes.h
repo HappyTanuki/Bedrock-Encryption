@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_BLOCK_CIPHER_AES_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_BLOCK_CIPHER_AES_H_
-
+﻿#pragma once
 #include <array>
 #include <memory>
 
@@ -108,5 +106,3 @@ class AESCTXController {
 };
 
 }  // namespace bedrock::cipher
-
-#endif

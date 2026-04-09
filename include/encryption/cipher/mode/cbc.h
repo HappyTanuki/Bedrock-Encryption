@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_CBC_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_CBC_H_
-
+﻿#pragma once
 #include "operation.h"
 
 namespace bedrock::cipher::op_mode {
@@ -17,5 +15,3 @@ class CBC : public OperationMode {
 };
 
 };  // namespace bedrock::cipher::op_mode
-
-#endif

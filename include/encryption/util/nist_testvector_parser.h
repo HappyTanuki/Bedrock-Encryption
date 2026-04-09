@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_NIST_TESTVECTOR_PARSER_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_NIST_TESTVECTOR_PARSER_H_
-
+﻿#pragma once
 #include <cstdint>
 #include <filesystem>
 #include <queue>
@@ -78,5 +76,3 @@ ReturnStatusCode ParseHashDRBGVector(
     std::vector<NISTTestDRBGHashAlgorithm>& test_vectors);
 
 }  // namespace bedrock::util::NISTTestVectorParser
-
-#endif

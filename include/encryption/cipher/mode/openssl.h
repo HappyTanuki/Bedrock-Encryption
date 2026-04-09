@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_OPENSSL_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_OPENSSL_H_
-
+﻿#pragma once
 #include "operation.h"
 
 namespace bedrock::cipher::op_mode {
@@ -15,5 +13,3 @@ class OPENSSL : public OperationMode {
 };
 
 };  // namespace bedrock::cipher::op_mode
-
-#endif

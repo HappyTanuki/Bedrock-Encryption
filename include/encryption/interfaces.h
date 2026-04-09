@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_INTERFACES_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_INTERFACES_H_
-
+﻿#pragma once
 #include <openssl/evp.h>
 
 #include <array>
@@ -70,5 +68,3 @@ class BlockCipherAlgorithm {
 };
 
 }  // namespace bedrock::cipher
-
-#endif

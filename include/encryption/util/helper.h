@@ -1,6 +1,4 @@
-#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_HELPER_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_UTIL_HELPER_H_
-
+﻿#pragma once
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -122,5 +120,3 @@ std::vector<std::uint8_t> ConcatByteVectors(const Vectors&... vecs) {
 }
 
 }  // namespace bedrock::util
-
-#endif

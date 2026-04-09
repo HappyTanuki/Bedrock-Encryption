@@ -1,5 +1,4 @@
-﻿#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_ALIASES_H_
+﻿#pragma once
 #include <memory>
 
 #include "../aes.h"
@@ -94,5 +93,3 @@ class AES_ECB {
 };
 
 }  // namespace bedrock::cipher
-
-#endif

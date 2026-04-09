@@ -1,6 +1,4 @@
-﻿#ifndef BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_OPERATION_H_
-#define BEDROCK_ENCRYPTION_ENCRYPTION_CIPHER_MODE_OPERATION_H_
-
+﻿#pragma once
 #include <memory>
 #include <span>
 #include <vector>
@@ -53,5 +51,3 @@ std::shared_ptr<OperationMode> PickImpl(std::string mode,
                                                  bool use_openssl = true);
 
 };  // namespace bedrock::cipher::op_mode
-
-#endif
