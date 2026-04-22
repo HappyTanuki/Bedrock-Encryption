@@ -259,6 +259,11 @@ else()
     list(APPEND OPENSSL_CONFIGURE_COMMAND no-shared)
 endif()
 
+# Tests are only built for the top-level project to reduce build times for downstream projects that include this as a dependency.
+if (NOT PROJECT_IS_TOP_LEVEL)
+    set(OPENSSL_TEST_COMMAND "")
+endif()
+
 # ============================================================
 # OpenSSL – ExternalProject
 # ============================================================
