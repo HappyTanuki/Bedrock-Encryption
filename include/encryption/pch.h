@@ -9,10 +9,12 @@
 #include <vector>
 #include <string>
 
-// OpenSSL heavy headers
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
-#include <openssl/x509.h>
+#if ENCRYPTION_USE_OPENSSL
+  // OpenSSL heavy headers
+  #include <openssl/evp.h>
+  #include <openssl/ssl.h>
+  #include <openssl/x509.h>
+#endif
 
 // Windows heavy header guarded by platform macro
 #ifdef _WIN32

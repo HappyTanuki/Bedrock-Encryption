@@ -6,7 +6,7 @@
 
 namespace bedrock::cipher {
 
-// AES-CBC 모드 편의성 단축 (지양)
+// AES-CBC 모드 편의성 단축 (deprecated)
 class AES_CBC {
  public:
   AES_CBC(const std::span<const std::uint8_t> key,

@@ -5,6 +5,7 @@ namespace bedrock::cipher {
 BlockCipherAlgorithm::~BlockCipherAlgorithm() noexcept = default;
 
 BlockCipherCTX::~BlockCipherCTX() {
+#if ENCRYPTION_USE_OPENSSL
   if (evp_ctx != nullptr) {
     ::EVP_CIPHER_CTX_free(evp_ctx);
     evp_ctx = nullptr;
@@ -13,6 +14,7 @@ BlockCipherCTX::~BlockCipherCTX() {
     ::EVP_CIPHER_free(evp_cipher);
     evp_cipher = nullptr;
   }
+#endif
 }
 
 };  // namespace bedrock::cipher

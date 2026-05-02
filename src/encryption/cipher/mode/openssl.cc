@@ -2,6 +2,7 @@
 
 namespace bedrock::cipher::op_mode {
 
+#if ENCRYPTION_USE_OPENSSL
 ErrorStatus OPENSSL::Process(
     std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
     ModeContext& ctx, const std::span<const std::uint8_t> input,
@@ -49,8 +50,8 @@ ErrorStatus OPENSSL::Process(
     return ErrorStatus::kFailure;
   }
   written_size += out_len;
-
   return ErrorStatus::kSuccess;
 }
+#endif
 
 }  // namespace bedrock::cipher::op_mode

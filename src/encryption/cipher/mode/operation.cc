@@ -1,12 +1,15 @@
 ﻿#include "encryption/cipher/mode/operation.h"
-
-#include <openssl/evp.h>
+#if ENCRYPTION_USE_OPENSSL
+  #include <openssl/evp.h>
+#endif
 
 #include "encryption/cipher/aes.h"
 #include "encryption/cipher/mode/cbc.h"
 #include "encryption/cipher/mode/ctr.h"
 #include "encryption/cipher/mode/ecb.h"
 #include "encryption/cipher/mode/openssl.h"
+
+#include <config.h>
 
 namespace bedrock::cipher::op_mode {
 
@@ -17,10 +20,11 @@ ModeContext::ModeContext(
   if (impl == nullptr) {
     return;
   }
-
+#if ENCRYPTION_USE_OPENSSL
   if (use_openssl) {
     evp_ctx = ::EVP_CIPHER_CTX_new();
   }
+#endif
   if (AESCTXController::Create(impl, key, *this) != ErrorStatus::kSuccess) {
     return;
   }
@@ -46,9 +50,11 @@ ModeContext::ModeContext(
         static_cast<std::uint8_t>(0xFF << m_bits);
   }
 
+#if ENCRYPTION_USE_OPENSSL
   if (evp_cipher != nullptr) {
     valid = true;
   }
+#endif
 
   return;
 }
@@ -57,6 +63,7 @@ ErrorStatus ModeContext::EVPInit(const std::string algorithm_name) noexcept {
     return ErrorStatus::kFailure;
   }
 
+#if ENCRYPTION_USE_OPENSSL
   if (evp_ctx == nullptr) {
     return ErrorStatus::kFailure;
   }
@@ -65,6 +72,7 @@ ErrorStatus ModeContext::EVPInit(const std::string algorithm_name) noexcept {
   if (evp_cipher == nullptr) {
     return ErrorStatus::kFailure;
   }
+#endif
   if (SetMode(mode) != ErrorStatus::kSuccess) {
     return ErrorStatus::kFailure;
   }
@@ -112,6 +120,7 @@ ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
     return ErrorStatus::kFailure;
   }
 
+#if ENCRYPTION_USE_OPENSSL
   if (evp_ctx != nullptr) {
     EVP_CIPHER_CTX_cleanup(evp_ctx);
 
@@ -131,6 +140,7 @@ ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
     }
     this->padding = padding;
   }
+#endif
   this->mode = mode_in;
 
   return ErrorStatus::kSuccess;
@@ -142,7 +152,8 @@ OperationMode::~OperationMode() = default;
 std::shared_ptr<OperationMode> PickImpl(std::string mode,
                                                     bool use_openssl) {
   std::shared_ptr<OperationMode> impl;
-
+  
+#if ENCRYPTION_USE_OPENSSL
   if (use_openssl) {
     impl = std::make_shared<OPENSSL>();
     impl->algorithm_name = mode;
@@ -155,6 +166,17 @@ std::shared_ptr<OperationMode> PickImpl(std::string mode,
   } else {
     return nullptr;
   }
+#else
+  if (mode == "CBC") {
+    impl = std::make_shared<CBC>();
+  } else if (mode == "CTR") {
+    impl = std::make_shared<CTR>();
+  } else if (mode == "ECB") {
+    impl = std::make_shared<ECB>();
+  } else {
+    return nullptr;
+  }
+#endif
 
   return impl;
 }

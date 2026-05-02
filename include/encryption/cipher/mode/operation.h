@@ -27,7 +27,7 @@ class ModeContext : public BlockCipherCTX {
   ErrorStatus SetMode(CipherMode mode, bool padding = false) noexcept;
 
   std::vector<std::uint8_t> iv;
-  CipherMode mode;
+  CipherMode mode = CipherMode::Encrypt;
   std::uint32_t m_bits = 64;
   bool padding = false;
   std::vector<std::uint8_t> prev_vector;
