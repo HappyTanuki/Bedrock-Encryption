@@ -9,6 +9,8 @@
 #include <vector>
 #include <string>
 
+#include <config.h>
+
 #if ENCRYPTION_USE_OPENSSL
   // OpenSSL heavy headers
   #include <openssl/evp.h>

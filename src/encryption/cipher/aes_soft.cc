@@ -217,7 +217,7 @@ ErrorStatus AES_SOFT::KeyExpantion(std::span<const std::uint8_t> key,
         reinterpret_cast<std::uint32_t*>(ctx.enc_round_keys[0].data())[i - 1];
 
     if (i % Nk == 0) {
-      temp3 = SubWord(RotWord(temp3)) ^ Rcon(i / Nk);
+      temp3 = SubWord(RotWord(temp3)) ^ Rcon[i / Nk];
     } else if (Nk > 6 && i % Nk == 4) {
       temp3 = SubWord(temp3);
     }
@@ -267,17 +267,17 @@ inline std::uint32_t AES_SOFT::RotWord(const std::uint32_t word) noexcept {
   return result;
 }
 
-constexpr std::uint8_t AES_SOFT::Rcon(const std::uint32_t i) noexcept {
-  if (Rcon_memo[i] != static_cast<std::uint8_t>(0x00)) return Rcon_memo[i];
-
-  for (int j = Rcon_memo_index + 1; j <= i; j++) {
-    Rcon_memo[j] = gf_mul(Rcon_memo[j - 1], static_cast<std::uint8_t>(0x02));
-  }
-
-  Rcon_memo_index = i;
-
-  return Rcon_memo[i];
-}
+//constexpr std::uint8_t AES_SOFT::Rcon(const std::uint32_t i) noexcept {
+//  if (kRcon[i] != static_cast<std::uint8_t>(0x00)) return kRcon[i];
+//
+//  for (int j = Rcon_memo_index + 1; j <= i; j++) {
+//    Rcon_memo[j] = gf_mul(Rcon_memo[j - 1], static_cast<std::uint8_t>(0x02));
+//  }
+//
+//  Rcon_memo_index = i;
+//
+//  return Rcon_memo[i];
+//}
 
 constexpr void AES_SOFT::AddRoundKey(
     std::span<std::uint8_t> state,
@@ -416,10 +416,10 @@ constexpr void AES_SOFT::SubBytes(std::span<std::uint8_t> state) noexcept {
   }
 }
 
-std::array<std::uint8_t, 14> AES_SOFT::Rcon_memo = {
-    static_cast<std::uint8_t>(0x00), static_cast<std::uint8_t>(0x01),
-    static_cast<std::uint8_t>(0x02)};
-int AES_SOFT::Rcon_memo_index = 1;
+//std::array<std::uint8_t, 14> AES_SOFT::Rcon_memo = {
+//    static_cast<std::uint8_t>(0x00), static_cast<std::uint8_t>(0x01),
+//    static_cast<std::uint8_t>(0x02)};
+//int AES_SOFT::Rcon_memo_index = 1;
 
 std::uint8_t AES_SOFT::S_box(std::uint8_t x) {
   uint8_t y = gf_inv(x);

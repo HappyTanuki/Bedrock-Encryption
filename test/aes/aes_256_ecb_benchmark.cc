@@ -6,7 +6,7 @@
 
 #define KEY_BIT 256
 #define ALGORITHM bedrock::cipher::AES_ECB
-#define ITERATIONS 10000000
+#define ITERATIONS 100000
 #define PROCESSED_BYTES (16 * ITERATIONS)
 
 int main() {

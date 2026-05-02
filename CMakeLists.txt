@@ -24,6 +24,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED    ON)
 set(CMAKE_CXX_EXTENSIONS          OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS  ON)
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(HOST_ARCH_AMD64 TRUE)
+else()
+  set(HOST_ARCH_AMD64 FALSE)
+endif()
+
 # ============================================================
 # Dependencies – Common
 # ============================================================
@@ -46,9 +52,46 @@ FetchContent_MakeAvailable(Common)
 # ============================================================
 # Dependencies – OpenSSL
 # ============================================================
-option(ENCRYPTION_USE_OPENSSL "Build openssl and use openssl" OFF)
+option(ENCRYPTION_USE_OPENSSL "Use OpenSSL (find on system, otherwise build from source)" ON)
+
+# Source selection:
+#   AUTO   - Try system first, fall back to building from source (default)
+#   SYSTEM - Require system OpenSSL; fail configuration if not found
+#   BUILD  - Always build from source (legacy behavior)
+set(ENCRYPTION_OPENSSL_SOURCE "AUTO" CACHE STRING
+    "Where to obtain OpenSSL: AUTO (system, then build), SYSTEM (system only), BUILD (always build)")
+set_property(CACHE ENCRYPTION_OPENSSL_SOURCE PROPERTY STRINGS AUTO SYSTEM BUILD)
+
+# Tracks whether OpenSSL must be built from source. Resolved below.
+set(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE FALSE)
 
 if(ENCRYPTION_USE_OPENSSL)
+    # ---- 1) System OpenSSL discovery (skipped when SOURCE=BUILD) ----
+    if(NOT ENCRYPTION_OPENSSL_SOURCE STREQUAL "BUILD")
+        # find_package respects OPENSSL_ROOT_DIR / CMAKE_PREFIX_PATH, so
+        # vcpkg / Conan / Homebrew / Firedaemon installs are picked up here.
+        find_package(OpenSSL QUIET)
+
+        if(OpenSSL_FOUND)
+            message(STATUS "Encryption: using system OpenSSL ${OPENSSL_VERSION} (${OPENSSL_INCLUDE_DIR})")
+        elseif(ENCRYPTION_OPENSSL_SOURCE STREQUAL "SYSTEM")
+            message(FATAL_ERROR
+                "Encryption: ENCRYPTION_OPENSSL_SOURCE=SYSTEM but OpenSSL was not found. "
+                "Hint: install it via your package manager, or set OPENSSL_ROOT_DIR / CMAKE_PREFIX_PATH.")
+        else()
+            message(STATUS "Encryption: system OpenSSL not found, will build from source")
+            set(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE TRUE)
+        endif()
+    else()
+        message(STATUS "Encryption: ENCRYPTION_OPENSSL_SOURCE=BUILD, building OpenSSL from source")
+        set(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE TRUE)
+    endif()
+endif()
+
+# ============================================================
+# Dependencies – OpenSSL (build from source)
+# ============================================================
+if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
     # ============================================================
     # CPU Count
     # ============================================================
@@ -78,7 +121,7 @@ if(ENCRYPTION_USE_OPENSSL)
             "${OPENSSL_LIB_DIR}/libcrypto.so"
             "${OPENSSL_LIB_DIR}/libssl.so"
         )
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    elseif(HOST_ARCH_AMD64)
         set(OPENSSL_RUNTIME_LIBS
             "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll"
             "${OPENSSL_BIN_DIR}/libssl-3-x64.dll"
@@ -118,24 +161,19 @@ if(ENCRYPTION_USE_OPENSSL)
         set(OPENSSL_INSTALL_COMMAND   make -j${NCPU} install)
         set(OPENSSL_CRYPTO_LIB        "${OPENSSL_LIB_DIR}/libcrypto.so")
         set(OPENSSL_SSL_LIB           "${OPENSSL_LIB_DIR}/libssl.so")
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32)
+    elseif(HOST_ARCH_AMD64 AND WIN32)
         # ---- Windows 64-bit ----
         ExternalProject_Add(
             Perl
             URL                        https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip
-
-            USES_TERMINAL_DOWNLOAD     TRUE
-            USES_TERMINAL_CONFIGURE    TRUE
-            USES_TERMINAL_BUILD        TRUE
-            USES_TERMINAL_TEST         TRUE
-            USES_TERMINAL_INSTALL      TRUE
-
-            LOG_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
-            LOG_UPDATE    ${PROJECT_IS_TOP_LEVEL}
-            LOG_PATCH     ${PROJECT_IS_TOP_LEVEL}
-            LOG_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
-            LOG_BUILD     ${PROJECT_IS_TOP_LEVEL}
-            LOG_INSTALL   ${PROJECT_IS_TOP_LEVEL}
+            
+            USES_TERMINAL_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_UPDATE    ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_PATCH     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_BUILD     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_TEST      ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_INSTALL   ${PROJECT_IS_TOP_LEVEL}
 
             DOWNLOAD_EXTRACT_TIMESTAMP TRUE
             CONFIGURE_COMMAND          ""
@@ -148,19 +186,14 @@ if(ENCRYPTION_USE_OPENSSL)
         ExternalProject_Add(
             Nasm
             URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win64/nasm-3.01-win64.zip
-
-            USES_TERMINAL_DOWNLOAD     TRUE
-            USES_TERMINAL_CONFIGURE    TRUE
-            USES_TERMINAL_BUILD        TRUE
-            USES_TERMINAL_TEST         TRUE
-            USES_TERMINAL_INSTALL      TRUE
-
-            LOG_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
-            LOG_UPDATE    ${PROJECT_IS_TOP_LEVEL}
-            LOG_PATCH     ${PROJECT_IS_TOP_LEVEL}
-            LOG_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
-            LOG_BUILD     ${PROJECT_IS_TOP_LEVEL}
-            LOG_INSTALL   ${PROJECT_IS_TOP_LEVEL}
+            
+            USES_TERMINAL_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_UPDATE    ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_PATCH     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_BUILD     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_TEST      ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_INSTALL   ${PROJECT_IS_TOP_LEVEL}
 
             DOWNLOAD_EXTRACT_TIMESTAMP TRUE
             CONFIGURE_COMMAND          ""
@@ -177,6 +210,7 @@ if(ENCRYPTION_USE_OPENSSL)
                     --modify PATH=path_list_append:${PERL_BIN_DIR}
                     --modify PATH=path_list_append:${NASM_BIN_DIR}
                     CL=/MP
+                    VSCMD_DEBUG=0
                 --
                 cmd /Q /C "call VsDevCmd.bat -host_arch=amd64 -arch=amd64 && ${cmd}"
                 PARENT_SCOPE
@@ -195,19 +229,14 @@ if(ENCRYPTION_USE_OPENSSL)
         ExternalProject_Add(
             Perl
             URL                        https://strawberryperl.com/download/5.32.1.1/strawberry-perl-no64-5.32.1.1-32bit-portable.zip
-
-            USES_TERMINAL_DOWNLOAD     TRUE
-            USES_TERMINAL_CONFIGURE    TRUE
-            USES_TERMINAL_BUILD        TRUE
-            USES_TERMINAL_TEST         TRUE
-            USES_TERMINAL_INSTALL      TRUE
-
-            LOG_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
-            LOG_UPDATE    ${PROJECT_IS_TOP_LEVEL}
-            LOG_PATCH     ${PROJECT_IS_TOP_LEVEL}
-            LOG_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
-            LOG_BUILD     ${PROJECT_IS_TOP_LEVEL}
-            LOG_INSTALL   ${PROJECT_IS_TOP_LEVEL}
+            
+            USES_TERMINAL_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_UPDATE    ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_PATCH     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_BUILD     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_TEST      ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_INSTALL   ${PROJECT_IS_TOP_LEVEL}
 
             DOWNLOAD_EXTRACT_TIMESTAMP TRUE
             CONFIGURE_COMMAND          ""
@@ -220,19 +249,14 @@ if(ENCRYPTION_USE_OPENSSL)
         ExternalProject_Add(
             Nasm
             URL                        https://www.nasm.us/pub/nasm/releasebuilds/3.01/win32/nasm-3.01-win32.zip
-
-            USES_TERMINAL_DOWNLOAD     TRUE
-            USES_TERMINAL_CONFIGURE    TRUE
-            USES_TERMINAL_BUILD        TRUE
-            USES_TERMINAL_TEST         TRUE
-            USES_TERMINAL_INSTALL      TRUE
-
-            LOG_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
-            LOG_UPDATE    ${PROJECT_IS_TOP_LEVEL}
-            LOG_PATCH     ${PROJECT_IS_TOP_LEVEL}
-            LOG_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
-            LOG_BUILD     ${PROJECT_IS_TOP_LEVEL}
-            LOG_INSTALL   ${PROJECT_IS_TOP_LEVEL}
+            
+            USES_TERMINAL_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_UPDATE    ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_PATCH     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_BUILD     ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_TEST      ${PROJECT_IS_TOP_LEVEL}
+            USES_TERMINAL_INSTALL   ${PROJECT_IS_TOP_LEVEL}
 
             DOWNLOAD_EXTRACT_TIMESTAMP TRUE
             CONFIGURE_COMMAND          ""
@@ -249,6 +273,7 @@ if(ENCRYPTION_USE_OPENSSL)
                     --modify PATH=path_list_append:${PERL_BIN_DIR}
                     --modify PATH=path_list_append:${NASM_BIN_DIR}
                     CL=/MP
+                    VSCMD_DEBUG=0
                 --
                 cmd /Q /C "call VsDevCmd.bat -host_arch=x86 -arch=x86 && ${cmd}"
                 PARENT_SCOPE
@@ -287,18 +312,13 @@ if(ENCRYPTION_USE_OPENSSL)
         GIT_REPOSITORY https://github.com/openssl/openssl.git
         GIT_TAG        ${OPENSSL_VERSION}
 
-        USES_TERMINAL_DOWNLOAD  TRUE
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD     TRUE
-        USES_TERMINAL_TEST      TRUE
-        USES_TERMINAL_INSTALL   TRUE
-
-        LOG_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
-        LOG_UPDATE    ${PROJECT_IS_TOP_LEVEL}
-        LOG_PATCH     ${PROJECT_IS_TOP_LEVEL}
-        LOG_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
-        LOG_BUILD     ${PROJECT_IS_TOP_LEVEL}
-        LOG_INSTALL   ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_DOWNLOAD  ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_UPDATE    ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_PATCH     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_CONFIGURE ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_BUILD     ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_TEST      ${PROJECT_IS_TOP_LEVEL}
+        USES_TERMINAL_INSTALL   ${PROJECT_IS_TOP_LEVEL}
 
         CONFIGURE_COMMAND
             ${OPENSSL_CONFIGURE_COMMAND}
@@ -365,9 +385,13 @@ if(ENCRYPTION_USE_OPENSSL)
     target_link_libraries(${SUB_PROJECT_NAME} PUBLIC OpenSSL::Crypto)
     target_link_libraries(${SUB_PROJECT_NAME} PUBLIC OpenSSL::SSL)
 
-    target_include_directories(${SUB_PROJECT_NAME} SYSTEM PUBLIC "${OPENSSL_INCLUDE_DIR}")
+    # Only inject our self-built include dir; the system path is carried
+    # by the IMPORTED target's INTERFACE_INCLUDE_DIRECTORIES.
+    if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
+        target_include_directories(${SUB_PROJECT_NAME} SYSTEM PUBLIC "${OPENSSL_INCLUDE_DIR}")
+    endif()
 endif()
-target_include_directories(${SUB_PROJECT_NAME}        PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(${SUB_PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Alias for parent projects
 add_library(${ROOT_PROJECT_NAME}::${SUB_PROJECT_NAME} ALIAS ${SUB_PROJECT_NAME})
@@ -458,7 +482,10 @@ if(CLANG_TIDY_EXE)
     endif()
 endif()
 
-if(ENCRYPTION_USE_OPENSSL)
+# Runtime-lib copy is only needed when we built OpenSSL ourselves.
+# System OpenSSL is expected to be on the loader path already (system dirs,
+# vcpkg/Conan deploy, Homebrew, Firedaemon install, etc.).
+if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
     set(COPY_OPENSSL_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake")
     if(WIN32)
         set(OPENSSL_RUNTIME_LIBS_DIR "${OPENSSL_BIN_DIR}")
@@ -512,7 +539,7 @@ add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
         "${CMAKE_BINARY_DIR}"
     COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to binary output directory"
 )
-if(ENCRYPTION_USE_OPENSSL)
+if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
     add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND}
             -DOPENSSL_LIB_DIR=${OPENSSL_RUNTIME_LIBS_DIR}

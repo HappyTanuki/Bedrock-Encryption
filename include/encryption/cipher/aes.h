@@ -66,12 +66,14 @@ class AES_SOFT : public AESImpl {
   static std::uint8_t S_box(std::uint8_t x);
   static std::uint8_t Inv_S_box(std::uint8_t x);
 
-  static std::array<std::uint8_t, 14> Rcon_memo;
-  static int Rcon_memo_index;
+  //static std::array<std::uint8_t, 14> Rcon_memo;
+  //static int Rcon_memo_index;
+  static constexpr std::array<std::uint8_t, 11> Rcon = {
+      0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
 
   inline static std::uint32_t SubWord(const std::uint32_t word) noexcept;
   inline static std::uint32_t RotWord(const std::uint32_t word) noexcept;
-  constexpr static std::uint8_t Rcon(const std::uint32_t i) noexcept;
+  // constexpr static std::uint8_t Rcon(const std::uint32_t i) noexcept;
 
   constexpr static void AddRoundKey(
       std::span<std::uint8_t> state,
