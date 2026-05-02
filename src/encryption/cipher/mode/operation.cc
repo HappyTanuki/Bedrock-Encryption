@@ -32,22 +32,23 @@ ModeContext::ModeContext(
   iv = std::vector<std::uint8_t>(iv_in.begin(), iv_in.end());
   iv.resize(block_size / 8);
   mode = mode_in;
-  m_bits = m_bits;
+  this->m_bits = m_bits;
   prev_vector = std::vector<std::uint8_t>(iv.begin(), iv.end());
   prev_vector.resize(block_size / 8);
   buffer.resize(block_size / 8);
 
-  if (m_bits != 0) {
+  if (this->m_bits != 0) {
     std::uint32_t block_bytes = block_size / 8;
-    std::uint32_t counter_bytes = (m_bits + 7) / 8;
+    std::uint32_t counter_bytes = (this->m_bits + 7) / 8;
+    std::uint32_t remaining_bits = this->m_bits;
 
     for (std::uint32_t i = block_bytes - 1; i > block_bytes - counter_bytes;
          i--) {
       prev_vector[i] = static_cast<std::uint8_t>(0x00);
-      m_bits -= 8;
+      remaining_bits -= 8;
     }
     prev_vector[block_bytes - counter_bytes] &=
-        static_cast<std::uint8_t>(0xFF << m_bits);
+        static_cast<std::uint8_t>(0xFF << remaining_bits);
   }
 
 #if ENCRYPTION_USE_OPENSSL
