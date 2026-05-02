@@ -1,6 +1,8 @@
 ﻿#pragma once
+#include <config.h>
+
 #if ENCRYPTION_USE_OPENSSL
-  #include <openssl/evp.h>
+#include <openssl/evp.h>
 #endif
 
 #include <array>
@@ -29,7 +31,7 @@ class BlockCipherCTX : public Validatable {
   alignas(16) std::vector<std::array<std::uint8_t, 16>> dec_round_keys;
 
   alignas(16) std::vector<std::uint8_t> state;
-  
+
 #if ENCRYPTION_USE_OPENSSL
   ::EVP_CIPHER_CTX* evp_ctx = nullptr;
   ::EVP_CIPHER* evp_cipher = nullptr;

@@ -529,4 +529,4 @@ if(ENCRYPTION_USE_OPENSSL)
 endif()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/.cmake/cmake_include/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
-target_include_directories(${SUB_PROJECT_NAME} SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(${SUB_PROJECT_NAME} SYSTEM PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
