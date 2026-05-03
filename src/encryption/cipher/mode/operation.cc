@@ -43,7 +43,7 @@ ModeContext::ModeContext(
     std::uint32_t remaining_bits = this->m_bits;
 
     for (std::uint32_t i = block_bytes - 1; i > block_bytes - counter_bytes;
-         i--) {
+      i--) {
       prev_vector[i] = static_cast<std::uint8_t>(0x00);
       remaining_bits -= 8;
     }

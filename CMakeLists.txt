@@ -41,6 +41,7 @@ if(NOT DEFINED ROOT_PROJECT_NAME)
     set(ROOT_PROJECT_NAME "Root")
 endif()
 
+if(NOT TARGET Common)
 FetchContent_Declare(
     Common
     GIT_REPOSITORY https://github.com/HappyTanuki/Bedrock-Common.git
@@ -48,6 +49,7 @@ FetchContent_Declare(
     GIT_SHALLOW    ON
 )
 FetchContent_MakeAvailable(Common)
+endif()
 
 # ============================================================
 # Dependencies – OpenSSL
