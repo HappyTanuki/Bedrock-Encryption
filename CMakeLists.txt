@@ -372,7 +372,7 @@ endif()
 # ============================================================
 # Target – Encryption
 # ============================================================
-file(GLOB_RECURSE SOURCES "src/*.cc")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cc")
 
 if(CMAKE_MSVC_RUNTIME_LIBRARY MATCHES "DLL$")
     add_library(${SUB_PROJECT_NAME} SHARED ${SOURCES})
