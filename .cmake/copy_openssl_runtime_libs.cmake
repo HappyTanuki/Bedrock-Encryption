@@ -4,6 +4,8 @@ else()
     file(GLOB OPENSSL_LIBS
         "${OPENSSL_LIB_DIR}/libssl.so*"
         "${OPENSSL_LIB_DIR}/libcrypto.so*"
+        "${OPENSSL_LIB_DIR}/libssl.a*"
+        "${OPENSSL_LIB_DIR}/libcrypto.a*"
         "${OPENSSL_LIB_DIR}/libssl*.dll"
         "${OPENSSL_LIB_DIR}/libcrypto*.dll"
     )
