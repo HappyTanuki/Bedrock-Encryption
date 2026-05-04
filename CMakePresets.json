@@ -107,7 +107,8 @@
       "name": "MD",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
+        "ENCRYPTION_LINKAGE": "DYNAMIC"
       },
       "condition": {
         "type": "equals",
@@ -119,7 +120,8 @@
       "name": "MT",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded",
+        "ENCRYPTION_LINKAGE": "STATIC"
       },
       "condition": {
         "type": "equals",
@@ -131,7 +133,8 @@
       "name": "MDd",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL",
+        "ENCRYPTION_LINKAGE": "DYNAMIC"
       },
       "condition": {
         "type": "equals",
@@ -143,12 +146,37 @@
       "name": "MTd",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug",
+        "ENCRYPTION_LINKAGE": "STATIC"
       },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
+      }
+    },
+    {
+      "name": "LinuxDynamic",
+      "hidden": true,
+      "cacheVariables": {
+        "ENCRYPTION_LINKAGE": "DYNAMIC"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "LinuxStatic",
+      "hidden": true,
+      "cacheVariables": {
+        "ENCRYPTION_LINKAGE": "STATIC"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
       }
     },
     {
@@ -236,7 +264,8 @@
       "displayName": "Clang x64",
       "inherits": [
         "Linux-Clang-Build",
-        "x64Linux"
+        "x64Linux",
+        "LinuxDynamic"
       ]
     },
     {
@@ -244,7 +273,26 @@
       "displayName": "GCC x64",
       "inherits": [
         "Linux-GCC-Build",
-        "x64Linux"
+        "x64Linux",
+        "LinuxDynamic"
+      ]
+    },
+    {
+      "name": "Clang-x64-Static",
+      "displayName": "Clang x64 Static (musl only)",
+      "inherits": [
+        "Linux-Clang-Build",
+        "x64Linux",
+        "LinuxStatic"
+      ]
+    },
+    {
+      "name": "GCC-x64-Static",
+      "displayName": "GCC x64 Static (musl only)",
+      "inherits": [
+        "Linux-GCC-Build",
+        "x64Linux",
+        "LinuxStatic"
       ]
     }
   ],
@@ -288,6 +336,22 @@
         "Linux-Only"
       ],
       "configurePreset": "GCC-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "Release-Clang-x64-Static",
+      "inherits": [
+        "Linux-Only"
+      ],
+      "configurePreset": "Clang-x64-Static",
+      "configuration": "Release"
+    },
+    {
+      "name": "Release-GCC-x64-Static",
+      "inherits": [
+        "Linux-Only"
+      ],
+      "configurePreset": "GCC-x64-Static",
       "configuration": "Release"
     }
   ]

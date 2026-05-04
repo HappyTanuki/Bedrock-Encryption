@@ -31,6 +31,77 @@ else()
 endif()
 
 # ============================================================
+# Linkage option (cross-platform abstraction of MT/MD)
+# ============================================================
+# DYNAMIC: 결과물 SHARED + 시스템 런타임 동적 (Win=MD, Linux=.so + libstdc++.so)
+# STATIC : 결과물 STATIC + 시스템 런타임 정적 (Win=MT, Linux=musl만 허용)
+set(ENCRYPTION_LINKAGE "DYNAMIC" CACHE STRING
+    "Library and runtime linkage: DYNAMIC or STATIC")
+set_property(CACHE ENCRYPTION_LINKAGE PROPERTY STRINGS DYNAMIC STATIC)
+
+# ============================================================
+# Detect libc on Linux (glibc / musl / other)
+# ============================================================
+set(ENCRYPTION_LIBC "unknown")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(CheckSymbolExists)
+    check_symbol_exists(__GLIBC__ "features.h" ENCRYPTION_HAVE_GLIBC)
+
+    if(ENCRYPTION_HAVE_GLIBC)
+        set(ENCRYPTION_LIBC "glibc")
+    else()
+        execute_process(
+            COMMAND ${CMAKE_C_COMPILER} -dumpmachine
+            OUTPUT_VARIABLE _cc_triple
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        if(_cc_triple MATCHES "musl")
+            set(ENCRYPTION_LIBC "musl")
+        else()
+            file(GLOB _musl_loader "/lib/ld-musl-*.so*" "/lib64/ld-musl-*.so*")
+            if(_musl_loader)
+                set(ENCRYPTION_LIBC "musl")
+            else()
+                set(ENCRYPTION_LIBC "other")
+            endif()
+        endif()
+    endif()
+    message(STATUS "Encryption: detected libc = ${ENCRYPTION_LIBC}")
+endif()
+
+# ============================================================
+# License guard: glibc + STATIC linkage is disallowed
+# ============================================================
+# glibc는 LGPL-2.1 라이선스라 정적 링크 시 재링크 가능 형태 배포 등
+# 별도 의무가 발생합니다. 이 프로젝트는 해당 의무를 회피하기 위해
+# glibc 환경에서의 STATIC 빌드를 차단합니다.
+# 정적 빌드를 원하면 musl 기반 환경(예: Alpine Linux)에서 빌드하세요.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux"
+   AND ENCRYPTION_LINKAGE STREQUAL "STATIC"
+   AND ENCRYPTION_LIBC STREQUAL "glibc")
+    message(FATAL_ERROR
+        "Encryption: STATIC linkage is not allowed on glibc.\n"
+        "  Reason: glibc is licensed under LGPL-2.1, and static linking "
+        "imposes redistribution obligations (relinkable object files, "
+        "license notice, etc.) that this project chooses not to undertake.\n"
+        "  Resolution: build on a musl-based environment (e.g. Alpine Linux), "
+        "or use ENCRYPTION_LINKAGE=DYNAMIC.")
+endif()
+
+# ============================================================
+# Apply MSVC runtime based on ENCRYPTION_LINKAGE
+# (preset이 직접 지정한 경우엔 건드리지 않음)
+# ============================================================
+if(WIN32 AND NOT CMAKE_MSVC_RUNTIME_LIBRARY)
+    if(ENCRYPTION_LINKAGE STREQUAL "STATIC")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
+endif()
+
+# ============================================================
 # Dependencies – Common
 # ============================================================
 include(FetchContent)
@@ -72,6 +143,9 @@ if(ENCRYPTION_USE_OPENSSL)
     if(NOT ENCRYPTION_OPENSSL_SOURCE STREQUAL "BUILD")
         # find_package respects OPENSSL_ROOT_DIR / CMAKE_PREFIX_PATH, so
         # vcpkg / Conan / Homebrew / Firedaemon installs are picked up here.
+        if(ENCRYPTION_LINKAGE STREQUAL "STATIC")
+            set(OPENSSL_USE_STATIC_LIBS TRUE)
+        endif()
         find_package(OpenSSL QUIET)
 
         if(OpenSSL_FOUND)
@@ -291,8 +365,8 @@ if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
         set(OPENSSL_SSL_LIB                                 "${OPENSSL_LIB_DIR}/libssl.lib")
     endif()
 
-    # linkage flag
-    if (CMAKE_MSVC_RUNTIME_LIBRARY MATCHES "DLL$")
+    # linkage flag (driven by ENCRYPTION_LINKAGE)
+    if (ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
         list(APPEND OPENSSL_CONFIGURE_COMMAND shared)
     else()
         list(APPEND OPENSSL_CONFIGURE_COMMAND no-shared)
@@ -351,14 +425,22 @@ if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
         file(WRITE ${OPENSSL_SSL_LIB} "")
     endif()
 
-    if (CMAKE_MSVC_RUNTIME_LIBRARY MATCHES "DLL$")
+    if (ENCRYPTION_LINKAGE STREQUAL "DYNAMIC" AND WIN32)
+        # Windows DLL: IMPORTED_LOCATION = .dll, IMPORTED_IMPLIB = .lib
         add_library(OpenSSL::SSL    SHARED IMPORTED GLOBAL)
         add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
         set_property(TARGET OpenSSL::SSL    PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_SSL_LIBS})
         set_property(TARGET OpenSSL::SSL    PROPERTY IMPORTED_IMPLIB   ${OPENSSL_SSL_LIB})
         set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_RUNTIME_CRYPTO_LIBS})
         set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_IMPLIB   ${OPENSSL_CRYPTO_LIB})
+    elseif (ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
+        # Linux/macOS .so: IMPORTED_LOCATION = .so (no implib)
+        add_library(OpenSSL::SSL    SHARED IMPORTED GLOBAL)
+        add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
+        set_property(TARGET OpenSSL::SSL    PROPERTY IMPORTED_LOCATION ${OPENSSL_SSL_LIB})
+        set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${OPENSSL_CRYPTO_LIB})
     else()
+        # STATIC (.a / .lib)
         add_library(OpenSSL::SSL    STATIC IMPORTED GLOBAL)
         add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
         set_property(TARGET OpenSSL::SSL    PROPERTY IMPORTED_LOCATION ${OPENSSL_SSL_LIB})
@@ -376,7 +458,7 @@ endif()
 # ============================================================
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cc")
 
-if(CMAKE_MSVC_RUNTIME_LIBRARY MATCHES "DLL$")
+if(ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
     add_library(${SUB_PROJECT_NAME} SHARED ${SOURCES})
 else()
     add_library(${SUB_PROJECT_NAME} STATIC ${SOURCES})
@@ -429,6 +511,32 @@ if(UNIX AND NOT APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
         BUILD_RPATH              "$ORIGIN"
     )
 endif()
+
+# ============================================================
+# Cross-platform link options carrier
+# (transitive하게 따라붙도록 INTERFACE 타겟으로 운반)
+# ============================================================
+if(NOT TARGET EncryptionLinkOptions)
+    add_library(EncryptionLinkOptions INTERFACE)
+endif()
+
+if(NOT WIN32 AND ENCRYPTION_LINKAGE STREQUAL "STATIC")
+    if(ENCRYPTION_LIBC STREQUAL "musl")
+        # musl: full-static OK
+        target_link_options(EncryptionLinkOptions INTERFACE -static)
+        message(STATUS "Encryption linkage: STATIC (musl, full-static)")
+    else()
+        # 도달 시점은 ENCRYPTION_LIBC == "other" 등 (glibc는 위에서 FATAL_ERROR)
+        target_link_options(EncryptionLinkOptions INTERFACE
+            -static-libgcc -static-libstdc++)
+        message(STATUS "Encryption linkage: STATIC (libc=${ENCRYPTION_LIBC}, runtime static)")
+    endif()
+
+    find_package(Threads REQUIRED)
+    target_link_libraries(EncryptionLinkOptions INTERFACE Threads::Threads)
+endif()
+
+target_link_libraries(${SUB_PROJECT_NAME} PUBLIC EncryptionLinkOptions)
 
 if (NOT WIN32)
     target_compile_options(
@@ -495,10 +603,13 @@ if(CLANG_TIDY_EXE)
     endif()
 endif()
 
-# Runtime-lib copy is only needed when we built OpenSSL ourselves.
+# Runtime-lib copy is only needed when we built OpenSSL ourselves AND
+# the build is DYNAMIC (STATIC 링크면 OpenSSL이 결과물에 묶이므로 복사 불필요).
 # System OpenSSL is expected to be on the loader path already (system dirs,
 # vcpkg/Conan deploy, Homebrew, Firedaemon install, etc.).
-if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
+set(ENCRYPTION_NEED_OPENSSL_RUNTIME_COPY FALSE)
+if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE AND ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
+    set(ENCRYPTION_NEED_OPENSSL_RUNTIME_COPY TRUE)
     set(COPY_OPENSSL_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/.cmake/copy_openssl_runtime_libs.cmake")
     if(WIN32)
         set(OPENSSL_RUNTIME_LIBS_DIR "${OPENSSL_BIN_DIR}")
@@ -519,7 +630,7 @@ if (${PROJECT_IS_TOP_LEVEL})
     add_subdirectory(test)
 
     foreach(TEST_SUBDIR "test" "test/aes")
-        if(ENCRYPTION_USE_OPENSSL)
+        if(ENCRYPTION_NEED_OPENSSL_RUNTIME_COPY)
             add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND}
                     -DOPENSSL_LIB_DIR=${OPENSSL_RUNTIME_LIBS_DIR}
@@ -534,25 +645,31 @@ if (${PROJECT_IS_TOP_LEVEL})
                 COMMENT "Copying OpenSSL config directory to ${TEST_SUBDIR} output directory"
             )
         endif()
-        add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-                "${CMAKE_BINARY_DIR}/${TEST_SUBDIR}"
-            COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to ${TEST_SUBDIR} output directory"
-        )
+        # STATIC 빌드면 결과물이 .a / .lib이라 실행 디렉터리에 둘 필요 없음
+        if(ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
+            add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+                    "${CMAKE_BINARY_DIR}/${TEST_SUBDIR}"
+                COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to ${TEST_SUBDIR} output directory"
+            )
+        endif()
     endforeach()
 endif()
 
 # ============================================================
 # Post-Build – Copy artifacts to binary root
 # ============================================================
-add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
-        "${CMAKE_BINARY_DIR}"
-    COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to binary output directory"
-)
-if(ENCRYPTION_OPENSSL_BUILD_FROM_SOURCE)
+# STATIC 빌드 시엔 결과물이 .a/.lib이고, OpenSSL도 결과물에 묶여 있어 복사 불필요.
+if(ENCRYPTION_LINKAGE STREQUAL "DYNAMIC")
+    add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:${SUB_PROJECT_NAME}>"
+            "${CMAKE_BINARY_DIR}"
+        COMMENT "Copying ${SUB_PROJECT_NAME} DLL/so to binary output directory"
+    )
+endif()
+if(ENCRYPTION_NEED_OPENSSL_RUNTIME_COPY)
     add_custom_command(TARGET ${SUB_PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND}
             -DOPENSSL_LIB_DIR=${OPENSSL_RUNTIME_LIBS_DIR}
