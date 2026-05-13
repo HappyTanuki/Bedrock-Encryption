@@ -9,7 +9,7 @@ class CTR : public OperationMode {
 
   ErrorStatus Process(
       std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
-      ModeContext& ctx, const std::span<const std::uint8_t> input,
+      ModeContext& ctx, std::span<const std::uint8_t> input,
       std::span<std::uint8_t> output, bool final = true) override;
 };
 

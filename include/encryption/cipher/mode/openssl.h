@@ -9,8 +9,8 @@ class OPENSSL : public OperationMode {
  public:
   ErrorStatus Process(
       std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
-      ModeContext& ctx, const std::span<const std::uint8_t> input,
-      std::span<std::uint8_t> output, bool final = true) final override;
+      ModeContext& ctx, std::span<const std::uint8_t> input,
+      std::span<std::uint8_t> output, bool final = true) final;
 };
 #endif
 

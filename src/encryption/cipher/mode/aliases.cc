@@ -2,8 +2,8 @@
 
 namespace bedrock::cipher {
 
-AES_CBC::~AES_CBC() = default;
-AES_CTR::~AES_CTR() = default;
-AES_ECB::~AES_ECB() = default;
+AesCbc::~AesCbc() = default;
+AesCtr::~AesCtr() = default;
+AesEcb::~AesEcb() = default;
 
 }  // namespace bedrock::cipher

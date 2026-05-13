@@ -14,7 +14,7 @@
 namespace bedrock::cipher::op_mode {
 
 ModeContext::ModeContext(
-    std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+    const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
     std::span<const std::uint8_t> key, std::span<const std::uint8_t> iv_in,
     CipherMode mode_in, std::uint32_t m_bits, bool use_openssl) noexcept {
   if (impl == nullptr) {
@@ -56,10 +56,8 @@ ModeContext::ModeContext(
     valid = true;
   }
 #endif
-
-  return;
 }
-ErrorStatus ModeContext::EVPInit(const std::string algorithm_name) noexcept {
+ErrorStatus ModeContext::EVPInit(const std::string& algorithm_name) noexcept {
   if (algorithm_name.empty()) {
     return ErrorStatus::kFailure;
   }
@@ -82,7 +80,7 @@ ErrorStatus ModeContext::EVPInit(const std::string algorithm_name) noexcept {
   return ErrorStatus::kSuccess;
 }
 ErrorStatus ModeContext::SetKey(
-    std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+    const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
     std::span<const std::uint8_t> key_in) noexcept {
   if (impl == nullptr || !IsValid()) {
     return ErrorStatus::kFailure;
@@ -98,7 +96,7 @@ ErrorStatus ModeContext::SetKey(
   return ErrorStatus::kSuccess;
 }
 ErrorStatus ModeContext::SetIV(
-    std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+    const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
     std::span<const std::uint8_t> iv_in) noexcept {
   if (impl == nullptr || !IsValid()) {
     return ErrorStatus::kFailure;
@@ -125,7 +123,7 @@ ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
   if (evp_ctx != nullptr) {
     EVP_CIPHER_CTX_cleanup(evp_ctx);
 
-    if (mode_in == bedrock::cipher::op_mode::CipherMode::Encrypt) {
+    if (mode_in == bedrock::cipher::op_mode::CipherMode::kEncrypt) {
       ::EVP_EncryptInit_ex2(evp_ctx, evp_cipher, enc_round_keys[0].data(),
                             iv.data(), nullptr);
     } else {
@@ -150,8 +148,8 @@ ErrorStatus ModeContext::SetMode(CipherMode mode_in, bool padding) noexcept {
 ModeContext::~ModeContext() = default;
 OperationMode::~OperationMode() = default;
 
-std::shared_ptr<OperationMode> PickImpl(std::string mode,
-                                                    bool use_openssl) {
+std::shared_ptr<OperationMode> PickImpl(const std::string& mode,
+                                        bool use_openssl) {
   std::shared_ptr<OperationMode> impl;
   
 #if ENCRYPTION_USE_OPENSSL

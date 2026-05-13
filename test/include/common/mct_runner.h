@@ -124,7 +124,7 @@ bool RunDirection(const std::vector<P::NISTTestMonteStage>& vectors,
         return Algorithm{key};
       }
     }();
-    cipher << (encrypt ? om::CipherMode::Encrypt : om::CipherMode::Decrypt);
+    cipher << (encrypt ? om::CipherMode::kEncrypt : om::CipherMode::kDecrypt);
 
     const std::uint32_t stage_number = item.variable.integer["COUNT"];
     std::cout << stage_number + 1 << StageOrdinal(stage_number + 1)

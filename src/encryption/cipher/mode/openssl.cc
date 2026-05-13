@@ -12,17 +12,18 @@ ErrorStatus OPENSSL::Process(
     return ErrorStatus::kFailure;
   }
   if (ctx.padding && (input.size() > ctx.block_size / 8 ||
-                      output.size() < ctx.block_size / 8 + input.size())) {
+                      output.size() < (ctx.block_size / 8) + input.size())) {
     return ErrorStatus::kFailure;
-  } else if (!ctx.padding && (input.size() != ctx.block_size / 8 ||
-                              output.size() != ctx.block_size / 8)) {
+  }
+  if (!ctx.padding && (input.size() != ctx.block_size / 8 ||
+                       output.size() != ctx.block_size / 8)) {
     return ErrorStatus::kFailure;
   }
 
   std::size_t written_size = 0;
   int err = 0;
   int out_len = 0;
-  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::Encrypt) {
+  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::kEncrypt) {
     err = ::EVP_EncryptUpdate(ctx.evp_ctx, output.data(), &out_len,
                               input.data(), input.size());
   } else {
@@ -38,10 +39,10 @@ ErrorStatus OPENSSL::Process(
     return ErrorStatus::kSuccess;
   }
 
-  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::Encrypt && final) {
+  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::kEncrypt && final) {
     err = ::EVP_EncryptFinal_ex(ctx.evp_ctx, output.data() + written_size,
                                 &out_len);
-  } else if (ctx.mode == bedrock::cipher::op_mode::CipherMode::Decrypt &&
+  } else if (ctx.mode == bedrock::cipher::op_mode::CipherMode::kDecrypt &&
              final) {
     err = ::EVP_DecryptFinal_ex(ctx.evp_ctx, output.data() + written_size,
                                 &out_len);

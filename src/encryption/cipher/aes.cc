@@ -38,25 +38,25 @@ AESPicker::AESPicker() = default;
 std::shared_ptr<AESImpl> AESPicker::PickImpl() {
   if (IntrinEnabled(IntrinSet::kAESNI) && IntrinEnabled(IntrinSet::kSSE2) &&
       IntrinEnabled(IntrinSet::kSSSE3)) {
-    return std::make_shared<AES_NI>();
+    return std::make_shared<AesNi>();
   }
-  return std::make_shared<AES_SOFT>();
+  return std::make_shared<AesSoft>();
 }
 
-ErrorStatus AESCTXController::Create(std::shared_ptr<BlockCipherAlgorithm> impl,
-                                     std::span<const std::uint8_t> key,
-                                     BlockCipherCTX& out) noexcept {
+ErrorStatus AESCTXController::Create(
+    const std::shared_ptr<BlockCipherAlgorithm>& impl,
+    std::span<const std::uint8_t> key, BlockCipherCTX& out) noexcept {
   if (key.size() != 16 && key.size() != 24 && key.size() != 32) {
     return ErrorStatus::kFailure;
   }
 
   out.key_size = key.size() * 8;
-  out.Nk = out.key_size / 32;
-  out.Nr = out.Nk + 6;
+  out.nk = out.key_size / 32;
+  out.nr = out.nk + 6;
   out.block_size = 128;
   out.state.resize(out.block_size / 8);
-  out.enc_round_keys.resize(out.Nr + 1);
-  out.dec_round_keys.resize(out.Nr + 1);
+  out.enc_round_keys.resize(out.nr + 1);
+  out.dec_round_keys.resize(out.nr + 1);
 
   if (impl->KeyExpantion(key, out) != ErrorStatus::kSuccess) {
     return ErrorStatus::kFailure;
@@ -67,7 +67,7 @@ ErrorStatus AESCTXController::Create(std::shared_ptr<BlockCipherAlgorithm> impl,
   return ErrorStatus::kSuccess;
 }
 ErrorStatus AESCTXController::SetKey(
-    std::shared_ptr<BlockCipherAlgorithm> impl, BlockCipherCTX& ctx,
+    const std::shared_ptr<BlockCipherAlgorithm>& impl, BlockCipherCTX& ctx,
     std::span<const std::uint8_t> key_in) noexcept {
   if (!ctx.IsValid()) {
     return ErrorStatus::kFailure;
@@ -92,8 +92,8 @@ ErrorStatus AESImpl::Encrypt(BlockCipherCTX& key,
     return ErrorStatus::kFailure;
   }
 
-  if (key.enc_round_keys_view().size() != 0 &&
-      key.enc_round_keys_view()[0].size() != 16) {
+  if (!key.EncRoundKeysView().empty() &&
+      key.EncRoundKeysView()[0].size() != 16) {
     return ErrorStatus::kFailure;
   }
 
@@ -108,8 +108,8 @@ ErrorStatus AESImpl::Decrypt(BlockCipherCTX& key,
     return ErrorStatus::kFailure;
   }
 
-  if (key.dec_round_keys_view().size() != 0 &&
-      key.dec_round_keys_view()[0].size() != 16) {
+  if (!key.DecRoundKeysView().empty() &&
+      key.DecRoundKeysView()[0].size() != 16) {
     return ErrorStatus::kFailure;
   }
 

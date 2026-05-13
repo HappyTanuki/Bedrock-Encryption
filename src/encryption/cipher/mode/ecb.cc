@@ -11,7 +11,7 @@ ErrorStatus ECB::Process(
     return ErrorStatus::kFailure;
   }
 
-  if (ctx.mode == CipherMode::Encrypt) {
+  if (ctx.mode == CipherMode::kEncrypt) {
     impl->Encrypt(ctx, input, output);
   } else {
     impl->Decrypt(ctx, input, output);

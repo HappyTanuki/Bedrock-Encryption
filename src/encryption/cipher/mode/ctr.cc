@@ -1,5 +1,7 @@
 #include "encryption/cipher/mode/ctr.h"
 
+#include <algorithm>
+
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher::op_mode {
@@ -16,7 +18,7 @@ ErrorStatus CTR::Process(
   impl->Encrypt(ctx, ctx.prev_vector, ctx.buffer);
   bedrock::util::StandardIncrement(ctx.prev_vector, ctx.m_bits);
 
-  std::copy(ctx.buffer.begin(), ctx.buffer.end(), output.begin());
+  std::ranges::copy(ctx.buffer, output.begin());
   bedrock::util::XorInplace(output, input);
 
   return ErrorStatus::kSuccess;

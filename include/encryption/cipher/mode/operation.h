@@ -8,26 +8,28 @@
 
 namespace bedrock::cipher::op_mode {
 
-enum class CipherMode { Encrypt, Decrypt };
+enum class CipherMode { kEncrypt, kDecrypt };
 
 class ModeContext : public BlockCipherCTX {
  public:
-  ModeContext(std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
-              std::span<const std::uint8_t> key,
-              std::span<const std::uint8_t> iv, CipherMode mode_in,
-              std::uint32_t m_bits = 64, bool use_openssl = true) noexcept;
-  virtual ~ModeContext() override;
+  ModeContext(
+      const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
+      std::span<const std::uint8_t> key, std::span<const std::uint8_t> iv,
+      CipherMode mode_in, std::uint32_t m_bits = 64,
+      bool use_openssl = true) noexcept;
+  ~ModeContext() override;
 
-  ErrorStatus EVPInit(const std::string algorithm_name) noexcept;
+  ErrorStatus EVPInit(const std::string& algorithm_name) noexcept;
   ErrorStatus SetKey(
-      std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
+      const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
       std::span<const std::uint8_t> key_in) noexcept;
-  ErrorStatus SetIV(std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
-                    std::span<const std::uint8_t> iv_in) noexcept;
+  ErrorStatus SetIV(
+      const std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm>& impl,
+      std::span<const std::uint8_t> iv_in) noexcept;
   ErrorStatus SetMode(CipherMode mode, bool padding = false) noexcept;
 
   std::vector<std::uint8_t> iv;
-  CipherMode mode = CipherMode::Encrypt;
+  CipherMode mode = CipherMode::kEncrypt;
   std::uint32_t m_bits = 64;
   bool padding = false;
   std::vector<std::uint8_t> prev_vector;
@@ -41,13 +43,13 @@ class OperationMode {
 
   virtual ErrorStatus Process(
       std::shared_ptr<bedrock::cipher::BlockCipherAlgorithm> impl,
-      ModeContext& ctx, const std::span<const std::uint8_t> input,
+      ModeContext& ctx, std::span<const std::uint8_t> input,
       std::span<std::uint8_t> output, bool final = true) = 0;
 
-  std::string algorithm_name = "";
+  std::string algorithm_name;
 };
 
-std::shared_ptr<OperationMode> PickImpl(std::string mode,
-                                                 bool use_openssl = true);
+std::shared_ptr<OperationMode> PickImpl(const std::string& mode,
+                                        bool use_openssl = true);
 
 };  // namespace bedrock::cipher::op_mode

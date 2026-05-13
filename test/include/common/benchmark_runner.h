@@ -33,7 +33,7 @@ int RunAesBenchmark() {
       return Algorithm{key};
     }
   }();
-  cipher << bedrock::cipher::op_mode::CipherMode::Encrypt;
+  cipher << bedrock::cipher::op_mode::CipherMode::kEncrypt;
 
   auto start = std::clock();
   for (std::uint64_t i = 0; i < Iterations; ++i) {
@@ -42,13 +42,13 @@ int RunAesBenchmark() {
   auto end = std::clock();
 
   const double elapsed = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-  std::cout << "Elapsed time: " << elapsed << " seconds" << std::endl;
+  std::cout << "Elapsed time: " << elapsed << " seconds" << '\n';
   std::cout << "bytes_processed: "
             << static_cast<double>(kProcessedBytes) / (1024 * 1024) << "mb"
-            << std::endl;
+            << '\n';
   std::cout << "throughput: "
             << static_cast<double>(kProcessedBytes) / elapsed / (1024 * 1024)
-            << "mb/s" << std::endl;
+            << "mb/s" << '\n';
   return 0;
 }
 

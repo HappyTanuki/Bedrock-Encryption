@@ -69,7 +69,7 @@ bool ProcessOne(const P::NISTTestVariables& item, P::VectorCategory cat,
   const char* in_label = encrypt ? "PLAINTEXT" : "CIPHERTEXT";
   const char* out_label = encrypt ? "CIPHERTEXT" : "PLAINTEXT";
 
-  cipher << (encrypt ? om::CipherMode::Encrypt : om::CipherMode::Decrypt);
+  cipher << (encrypt ? om::CipherMode::kEncrypt : om::CipherMode::kDecrypt);
 
   const auto& in_bytes = item.binary.at(in_label);
   const auto& exp_bytes = item.binary.at(out_label);

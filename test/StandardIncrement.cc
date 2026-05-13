@@ -13,8 +13,8 @@ static void WriteCounter(std::span<std::uint8_t> bytes, uint64_t m,
     value >>= 8;
   }
 
-  size_t offset = n * 8 - m;
-  uint8_t mask = 0xFFu >> offset;
+  size_t offset = (n * 8) - m;
+  uint8_t mask = 0xFFU >> offset;
 
   uint8_t v = bytes[base];
   bytes[base] = static_cast<std::uint8_t>(v & mask);

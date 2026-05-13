@@ -13,9 +13,8 @@ ReturnStatusCode ParseHashVector(const std::filesystem::path& file_path,
   std::string line;
 
   std::regex comment("^(.*?)#.*$");
-  std::regex word_size(
-      "\\[\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*\\]");
-  std::regex variable("\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+  std::regex word_size(R"(\[\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*\])");
+  std::regex variable(R"(\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
 
   if (!file.is_open()) {
     NISTTestVariables error_object;
@@ -27,7 +26,7 @@ ReturnStatusCode ParseHashVector(const std::filesystem::path& file_path,
   int count = 0;
 
   if (test_vectors.size() <= count) {
-    test_vectors.push_back(NISTTestVariables());
+    test_vectors.emplace_back();
   }
 
   while (std::getline(file, line)) {
@@ -50,14 +49,14 @@ ReturnStatusCode ParseHashVector(const std::filesystem::path& file_path,
         std::regex_match(var_name, std::regex(".*COUNT.*"))) {
       if (test_vectors[count].integer.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestVariables());
+        test_vectors.emplace_back();
       }
       test_vectors[count].integer[var_name] =
           std::stoul(var_value, nullptr, 10);
     } else {
       if (test_vectors[count].binary.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestVariables());
+        test_vectors.emplace_back();
       }
       test_vectors[count].binary[var_name] = HexStrToBytes(var_value);
     }
@@ -73,11 +72,10 @@ ReturnStatusCode ParseHashMonteVector(
   std::string line;
 
   std::regex comment("^(.*?)#.*$");
-  std::regex word_size(
-      "\\[\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*\\]");
-  std::regex variable("\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+  std::regex word_size(R"(\[\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*\])");
+  std::regex variable(R"(\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
   std::regex variable_indented(
-      "\\s+([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+      R"(\s+([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
 
   NISTTestMonteSample sample;
   std::queue<NISTTestMonteSample> samples = {};
@@ -94,7 +92,7 @@ ReturnStatusCode ParseHashMonteVector(
   }
 
   if (test_vectors.size() <= count) {
-    test_vectors.push_back(NISTTestMonteStage());
+    test_vectors.emplace_back();
   }
 
   while (std::getline(file, line)) {
@@ -144,7 +142,7 @@ ReturnStatusCode ParseHashMonteVector(
       if (test_vectors[count].variable.integer.contains(var_name) ||
           test_vectors[count].variable.binary.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestMonteStage());
+        test_vectors.emplace_back();
       }
       if (std::regex_match(var_name, std::regex(".*COUNT.*"))) {
         test_vectors[count].variable.integer[var_name] =
@@ -168,9 +166,8 @@ ReturnStatusCode ParseCipherVector(const std::filesystem::path& file_path,
   std::string line;
 
   std::regex comment("^(.*?)#.*$");
-  std::regex word_size(
-      "\\[\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*\\]");
-  std::regex variable("\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+  std::regex word_size(R"(\[\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*\])");
+  std::regex variable(R"(\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
   std::regex encrypt("\\[ENCRYPT\\]");
   std::regex decrypt("\\[DECRYPT\\]");
   bool reading = false;
@@ -185,7 +182,7 @@ ReturnStatusCode ParseCipherVector(const std::filesystem::path& file_path,
   int count = 0;
 
   if (test_vectors.size() <= count) {
-    test_vectors.push_back(NISTTestVariables());
+    test_vectors.emplace_back();
   }
 
   while (std::getline(file, line)) {
@@ -226,14 +223,14 @@ ReturnStatusCode ParseCipherVector(const std::filesystem::path& file_path,
         std::regex_match(var_name, std::regex(".*COUNT.*"))) {
       if (test_vectors[count].integer.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestVariables());
+        test_vectors.emplace_back();
       }
       test_vectors[count].integer[var_name] =
           std::stoul(var_value, nullptr, 10);
     } else {
       if (test_vectors[count].binary.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestVariables());
+        test_vectors.emplace_back();
       }
       test_vectors[count].binary[var_name] = HexStrToBytes(var_value);
     }
@@ -249,11 +246,10 @@ ReturnStatusCode ParseCipherMonteVector(
   std::string line;
 
   std::regex comment("^(.*?)#.*$");
-  std::regex word_size(
-      "\\[\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9]+)\\s*\\]");
-  std::regex variable("\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+  std::regex word_size(R"(\[\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9]+)\s*\])");
+  std::regex variable(R"(\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
   std::regex variable_indented(
-      "\\s+([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-fA-F0-9\\.]+)\\s*");
+      R"(\s+([a-zA-Z0-9 ]+)\s\s*=\s*([a-fA-F0-9\.]+)\s*)");
   std::regex encrypt("\\[ENCRYPT\\]");
   std::regex decrypt("\\[DECRYPT\\]");
   bool reading = false;
@@ -273,7 +269,7 @@ ReturnStatusCode ParseCipherMonteVector(
   }
 
   if (test_vectors.size() <= count) {
-    test_vectors.push_back(NISTTestMonteStage());
+    test_vectors.emplace_back();
   }
 
   while (std::getline(file, line)) {
@@ -341,7 +337,7 @@ ReturnStatusCode ParseCipherMonteVector(
       if (test_vectors[count].variable.integer.contains(var_name) ||
           test_vectors[count].variable.binary.contains(var_name)) {
         count++;
-        test_vectors.push_back(NISTTestMonteStage());
+        test_vectors.emplace_back();
       }
       if (std::regex_match(var_name, std::regex(".*COUNT.*"))) {
         test_vectors[count].variable.integer[var_name] =
@@ -366,13 +362,13 @@ ReturnStatusCode ParseHashDRBGVector(
 
   std::regex comment("^(.*?)#.*$");
   std::regex constant(".*\\[(.*)\\].*");
-  std::regex variable("\\s*([a-zA-Z0-9 ]+)\\s\\s*=\\s*([a-zA-Z0-9\\.]*)\\s*");
+  std::regex variable(R"(\s*([a-zA-Z0-9 ]+)\s\s*=\s*([a-zA-Z0-9\.]*)\s*)");
 
-  std::regex instantiate("\\*\\*\\sINSTANTIATE:");
-  std::regex reseed("\\*\\*\\sRESEED:");
-  std::regex generate("\\*\\*\\sGENERATE.*:");
+  std::regex instantiate(R"(\*\*\sINSTANTIATE:)");
+  std::regex reseed(R"(\*\*\sRESEED:)");
+  std::regex generate(R"(\*\*\sGENERATE.*:)");
 
-  std::string hashALGORITHM_name;
+  std::string hash_algorithm_name;
   std::vector<std::uint8_t> entropy_input = {};
   std::vector<std::uint8_t> nonce = {};
   std::vector<std::uint8_t> personalization_string = {};
@@ -381,15 +377,15 @@ ReturnStatusCode ParseHashDRBGVector(
   bool prediction_resistance_flag = false;
 
   NISTTestDRBGHashState hash_state;
-  bool V_parsed = false;
-  bool C_parsed = false;
+  bool v_parsed = false;
+  bool c_parsed = false;
   bool reseed_counter_parsed = false;
   DRBGFunctionName function_name = DRBGFunctionName::kError;
   std::uint32_t returned_bits_len = 0;
 
   if (!file.is_open()) {
     NISTTestDRBGHashAlgorithm error_object;
-    error_object.hashALGORITHM_name = "Error opening file.";
+    error_object.hash_algorithm_name = "Error opening file.";
     test_vectors.push_back(error_object);
     return ReturnStatusCode::kError;
   }
@@ -417,14 +413,15 @@ ReturnStatusCode ParseHashDRBGVector(
           var_value == "True") {
         prediction_resistance_flag = true;
         continue;
-      } else if (is_constant && var_name == "PredictionResistance" &&
-                 var_value == "False") {
+      }
+      if (is_constant && var_name == "PredictionResistance" &&
+          var_value == "False") {
         prediction_resistance_flag = false;
         continue;
       }
 
       // because all of it was too big
-      if (!is_constant && hashALGORITHM_name != "SHA-256") {
+      if (!is_constant && hash_algorithm_name != "SHA-256") {
         continue;
       }
 
@@ -439,11 +436,11 @@ ReturnStatusCode ParseHashDRBGVector(
                  var_name == "AdditionalInputReseed") {
         additional_input = HexStrToBytes(var_value);
       } else if (var_name == "V") {
-        hash_state.V = HexStrToBytes(var_value);
-        V_parsed = true;
+        hash_state.v = HexStrToBytes(var_value);
+        v_parsed = true;
       } else if (var_name == "C") {
-        hash_state.C = HexStrToBytes(var_value);
-        C_parsed = true;
+        hash_state.c = HexStrToBytes(var_value);
+        c_parsed = true;
       } else if (var_name == "reseed counter") {
         hash_state.reseed_counter = std::stoul(var_value, nullptr, 10);
         reseed_counter_parsed = true;
@@ -453,17 +450,20 @@ ReturnStatusCode ParseHashDRBGVector(
         returned_bits_len = std::stoul(var_value, nullptr, 10);
       }
     } else if (is_constant) {
-      hashALGORITHM_name = line;
+      hash_algorithm_name = line;
     }
 
-    if (std::regex_search(line, matches, instantiate))
+    if (std::regex_search(line, matches, instantiate)) {
       function_name = DRBGFunctionName::kInstantiate;
-    if (std::regex_search(line, matches, reseed))
+    }
+    if (std::regex_search(line, matches, reseed)) {
       function_name = DRBGFunctionName::kReseed;
-    if (std::regex_search(line, matches, generate))
+    }
+    if (std::regex_search(line, matches, generate)) {
       function_name = DRBGFunctionName::kGenerate;
+    }
 
-    if (V_parsed && C_parsed && reseed_counter_parsed) {
+    if (v_parsed && c_parsed && reseed_counter_parsed) {
       NISTTestDRBGHashStep step;
       step.function_name = function_name;
       step.entropy_input = entropy_input;
@@ -474,10 +474,10 @@ ReturnStatusCode ParseHashDRBGVector(
       step.internal_state = hash_state;
       step.returned_bits = returned_bits;
 
-      if (test_vectors.size() == 0 ||
-          test_vectors.back().hashALGORITHM_name != hashALGORITHM_name) {
+      if (test_vectors.empty() ||
+          test_vectors.back().hash_algorithm_name != hash_algorithm_name) {
         NISTTestDRBGHashAlgorithm stage;
-        stage.hashALGORITHM_name = hashALGORITHM_name;
+        stage.hash_algorithm_name = hash_algorithm_name;
         test_vectors.push_back(stage);
       }
       if (function_name == DRBGFunctionName::kInstantiate) {
@@ -485,7 +485,7 @@ ReturnStatusCode ParseHashDRBGVector(
         test_vectors.back().stages.push_back(new_stage);
       }
       test_vectors.back().stages.back().steps.push_back(step);
-      test_vectors.back().stages.back().ReturnedBitsLen = returned_bits_len;
+      test_vectors.back().stages.back().returned_bits_len = returned_bits_len;
 
       entropy_input.clear();
       nonce.clear();
@@ -494,8 +494,8 @@ ReturnStatusCode ParseHashDRBGVector(
       additional_input.clear();
       returned_bits.clear();
       hash_state = NISTTestDRBGHashState();
-      V_parsed = false;
-      C_parsed = false;
+      v_parsed = false;
+      c_parsed = false;
       reseed_counter_parsed = false;
       function_name = DRBGFunctionName::kError;
     }

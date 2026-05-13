@@ -1,51 +1,52 @@
 #include <emmintrin.h>
 #include <immintrin.h>
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include "encryption/cipher/aes.h"
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher {
 
-AES_NI::~AES_NI() = default;
+AesNi::~AesNi() = default;
 
-void AES_NI::EncryptImpl(BlockCipherCTX& ctx,
-                         std::span<const std::uint8_t> block,
-                         std::span<std::uint8_t> out) const noexcept {
-  std::copy(block.begin(), block.end(), ctx.state.begin());
+void AesNi::EncryptImpl(BlockCipherCTX& ctx,
+                        std::span<const std::uint8_t> block,
+                        std::span<std::uint8_t> out) const noexcept {
+  std::ranges::copy(block, ctx.state.begin());
 
   bedrock::util::XorInplace(ctx.state, ctx.enc_round_keys[0]);
 
   __m128i state_128i =
       _mm_loadu_si128(reinterpret_cast<const __m128i*>(ctx.state.data()));
-  const __m128i* _m128_round_keys =
+  const auto* m128_round_keys =
       reinterpret_cast<const __m128i*>(ctx.enc_round_keys.data());
 
-  for (int round = 1; round < ctx.Nr; round++) {
-    state_128i = _mm_aesenc_si128(state_128i, _m128_round_keys[round]);
+  for (int round = 1; std::cmp_less(round, ctx.nr); round++) {
+    state_128i = _mm_aesenc_si128(state_128i, m128_round_keys[round]);
   }
-  state_128i = _mm_aesenclast_si128(state_128i, _m128_round_keys[ctx.Nr]);
+  state_128i = _mm_aesenclast_si128(state_128i, m128_round_keys[ctx.nr]);
 
   _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.state.data()), state_128i);
 
-  std::copy(ctx.state.begin(), ctx.state.end(), out.begin());
-
-  return;
+  std::ranges::copy(ctx.state, out.begin());
 }
 
-void AES_NI::DecryptImpl(BlockCipherCTX& ctx,
-                         std::span<const std::uint8_t> block,
-                         std::span<std::uint8_t> out) const noexcept {
-  std::copy(block.begin(), block.end(), ctx.state.begin());
+void AesNi::DecryptImpl(BlockCipherCTX& ctx,
+                        std::span<const std::uint8_t> block,
+                        std::span<std::uint8_t> out) const noexcept {
+  std::ranges::copy(block, ctx.state.begin());
 
-  bedrock::util::XorInplace(ctx.state, ctx.dec_round_keys[ctx.Nr]);
+  bedrock::util::XorInplace(ctx.state, ctx.dec_round_keys[ctx.nr]);
 
   __m128i state_128i =
       _mm_loadu_si128(reinterpret_cast<__m128i*>(ctx.state.data()));
 
-  for (int round = ctx.Nr - 1; round > 0; --round) {
+  for (int round = ctx.nr - 1; round > 0; --round) {
     state_128i = _mm_aesdec_si128(
         state_128i,
         reinterpret_cast<const __m128i*>(ctx.dec_round_keys.data())[round]);
@@ -56,9 +57,7 @@ void AES_NI::DecryptImpl(BlockCipherCTX& ctx,
 
   _mm_storeu_si128(reinterpret_cast<__m128i*>(ctx.state.data()), state_128i);
 
-  std::copy(ctx.state.begin(), ctx.state.end(), out.begin());
-
-  return;
+  std::ranges::copy(ctx.state, out.begin());
 }
 
 static inline __m128i AESKeygenAssist(__m128i a, int imm) {
@@ -92,14 +91,14 @@ static inline __m128i AESKeygenAssist(__m128i a, int imm) {
   return _mm_set_epi32(0x00, 0x00, 0x00, 0x00);
 }
 
-ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
-                                 BlockCipherCTX& ctx) const noexcept {
+ErrorStatus AesNi::KeyExpantion(std::span<const std::uint8_t> key,
+                                BlockCipherCTX& ctx) const noexcept {
   std::uint16_t key_size = key.size() * 8;
-  std::uint32_t Nk = key_size / 32;
-  std::uint32_t Nr = Nk + 6;
+  std::uint32_t nk = key_size / 32;
+  std::uint32_t nr = nk + 6;
 
-  if (ctx.enc_round_keys.size() < Nr + 1 ||
-      ctx.dec_round_keys.size() < Nr + 1) {
+  if (ctx.enc_round_keys.size() < nr + 1 ||
+      ctx.dec_round_keys.size() < nr + 1) {
     return ErrorStatus::kFailure;
   }
 
@@ -113,7 +112,7 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
 
     int i = 2;
     __m128i assist_val = _mm_set_epi32(0, 0, 0, 0);
-    while (i < Nr - 1) {
+    while (i < nr - 1) {
       assist_val = AESKeygenAssist(temp2, i / 2);
       assist_val = _mm_shuffle_epi32(assist_val, _MM_SHUFFLE(3, 3, 3, 3));
 
@@ -153,7 +152,7 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
     __m128i temp1 =
         _mm_loadu_si128(reinterpret_cast<__m128i*>(ctx.enc_round_keys.data()));
 
-    for (int i = 1; i < Nr + 1; ++i) {
+    for (int i = 1; i < nr + 1; ++i) {
       __m128i assist_val = AESKeygenAssist(temp1, i);
 
       // 라운드 키 계산
@@ -168,12 +167,14 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
                        temp1);
     }
   } else {
-    __m128i x, y, assist;
-    uint32_t* W = reinterpret_cast<uint32_t*>(ctx.enc_round_keys.data());
+    __m128i x;
+    __m128i y;
+    __m128i assist;
+    auto* w = reinterpret_cast<uint32_t*>(ctx.enc_round_keys.data());
 
     // 초기 키 로드: x = [W0, W1, W2, W3], y = [W4, W5, ?, ?]
-    x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(W));
-    y = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(W + 4));
+    x = _mm_loadu_si128(reinterpret_cast<const __m128i*>(w));
+    y = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(w + 4));
 
     for (int i = 0; i < 8; ++i) {
       // 1. KeygenAssist: y의 W5(index 1)를 사용하기 위해 셔플
@@ -199,10 +200,14 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
 
       // 4. 저장 (Stitching 없이 순차 저장)
       // i=0일 때: W6, W7, W8, W9 저장 (16바이트)
-      _mm_storeu_si128(reinterpret_cast<__m128i*>(W + 6 + i * 6), x);
+      _mm_storeu_si128(
+          reinterpret_cast<__m128i*>(w + 6 + (static_cast<ptrdiff_t>(i * 6))),
+          x);
       // i=0일 때: W10, W11 저장 (8바이트)
-      if (10 + i * 6 < 52) {
-        _mm_storel_epi64(reinterpret_cast<__m128i*>(W + 10 + i * 6), y);
+      if (10 + (i * 6) < 52) {
+        _mm_storel_epi64(reinterpret_cast<__m128i*>(
+                             w + 10 + (static_cast<ptrdiff_t>(i * 6))),
+                         y);
       }
 
       // 다음 루프를 위한 준비:
@@ -213,13 +218,13 @@ ErrorStatus AES_NI::KeyExpantion(std::span<const std::uint8_t> key,
   }
 
   __m128i tmp;
-  for (int i = 1; i < Nr; ++i) {
+  for (int i = 1; std::cmp_less(i, nr); ++i) {
     tmp = _mm_loadu_si128(&reinterpret_cast<__m128i*>(ctx.enc_round_keys.data())[i]);
     tmp = _mm_aesimc_si128(tmp);
     _mm_storeu_si128(&reinterpret_cast<__m128i*>(ctx.dec_round_keys.data())[i], tmp);
   }
   ctx.dec_round_keys[0] = ctx.enc_round_keys[0];
-  ctx.dec_round_keys[Nr] = ctx.enc_round_keys[Nr];
+  ctx.dec_round_keys[nr] = ctx.enc_round_keys[nr];
 
   return ErrorStatus::kSuccess;
 }

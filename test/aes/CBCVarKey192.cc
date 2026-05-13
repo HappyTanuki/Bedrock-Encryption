@@ -1,6 +1,5 @@
 #include "common/kat_runner.h"
 
 int main() {
-  return bedrock::test::RunKatTest<bedrock::cipher::AES_CBC, 24>(
-      "CBCVarKey192");
+  return bedrock::test::RunKatTest<bedrock::cipher::AesCbc, 24>("CBCVarKey192");
 }

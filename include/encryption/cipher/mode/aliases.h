@@ -7,89 +7,92 @@
 namespace bedrock::cipher {
 
 // AES-CBC 모드 편의성 단축 (deprecated)
-class AES_CBC {
+class AesCbc {
  public:
-  AES_CBC(const std::span<const std::uint8_t> key,
-          const std::span<const std::uint8_t> iv)
-      : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::PickImpl("CBC")),
-        ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
-    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
-                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
+  AesCbc(const std::span<const std::uint8_t> key,
+         const std::span<const std::uint8_t> iv)
+      : impl_(AESPicker::PickImpl()),
+        mode_impl_(op_mode::PickImpl("CBC")),
+        ctx_(impl_, key, iv, op_mode::CipherMode::kEncrypt, 0) {
+    ctx_.EVPInit(impl_->GetAlgorithmName() + std::string("-") +
+                 std::to_string(ctx_.key_size) + "-" +
+                 mode_impl_->algorithm_name);
   }
-  virtual ~AES_CBC();
+  virtual ~AesCbc();
 
   ErrorStatus Process(const std::span<const std::uint8_t> input,
                       std::span<std::uint8_t> output) {
-    return mode_impl->Process(impl, ctx, input, output);
+    return mode_impl_->Process(impl_, ctx_, input, output);
   }
 
-  AES_CBC& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.SetMode(_mode);
+  AesCbc& operator<<(const op_mode::CipherMode& mode) {
+    ctx_.SetMode(mode);
     return *this;
   }
 
  private:
-  std::shared_ptr<BlockCipherAlgorithm> impl;
-  std::shared_ptr<op_mode::OperationMode> mode_impl;
-  op_mode::ModeContext ctx;
+  std::shared_ptr<BlockCipherAlgorithm> impl_;
+  std::shared_ptr<op_mode::OperationMode> mode_impl_;
+  op_mode::ModeContext ctx_;
 };
 
 // AES-CTR 모드 편의성 단축
-class AES_CTR {
+class AesCtr {
  public:
-  AES_CTR(const std::span<const std::uint8_t> key,
-          const std::span<const std::uint8_t> iv)
-      : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::PickImpl("CTR")),
-        ctx(impl, key, iv, op_mode::CipherMode::Encrypt, 0) {
-    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
-                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
+  AesCtr(const std::span<const std::uint8_t> key,
+         const std::span<const std::uint8_t> iv)
+      : impl_(AESPicker::PickImpl()),
+        mode_impl_(op_mode::PickImpl("CTR")),
+        ctx_(impl_, key, iv, op_mode::CipherMode::kEncrypt, 0) {
+    ctx_.EVPInit(impl_->GetAlgorithmName() + std::string("-") +
+                 std::to_string(ctx_.key_size) + "-" +
+                 mode_impl_->algorithm_name);
   }
-  virtual ~AES_CTR();
+  virtual ~AesCtr();
 
   ErrorStatus Process(const std::span<const std::uint8_t> input,
                       std::span<std::uint8_t> output) {
-    return mode_impl->Process(impl, ctx, input, output);
+    return mode_impl_->Process(impl_, ctx_, input, output);
   }
 
-  AES_CTR& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.SetMode(_mode);
+  AesCtr& operator<<(const op_mode::CipherMode& mode) {
+    ctx_.SetMode(mode);
     return *this;
   }
 
  private:
-  std::shared_ptr<BlockCipherAlgorithm> impl;
-  std::shared_ptr<op_mode::OperationMode> mode_impl;
-  op_mode::ModeContext ctx;
+  std::shared_ptr<BlockCipherAlgorithm> impl_;
+  std::shared_ptr<op_mode::OperationMode> mode_impl_;
+  op_mode::ModeContext ctx_;
 };
 
 // AES-ECB 모드 편의성 단축
-class AES_ECB {
+class AesEcb {
  public:
-  AES_ECB(const std::span<const std::uint8_t> key)
-      : impl(AESPicker::PickImpl()),
-        mode_impl(op_mode::PickImpl("ECB")),
-        ctx(impl, key, {}, op_mode::CipherMode::Encrypt, 0) {
-    ctx.EVPInit(impl->GetAlgorithmName() + std::string("-") +
-                std::to_string(ctx.key_size) + "-" + mode_impl->algorithm_name);
+  explicit AesEcb(const std::span<const std::uint8_t> key)
+      : impl_(AESPicker::PickImpl()),
+        mode_impl_(op_mode::PickImpl("ECB")),
+        ctx_(impl_, key, {}, op_mode::CipherMode::kEncrypt, 0) {
+    ctx_.EVPInit(impl_->GetAlgorithmName() + std::string("-") +
+                 std::to_string(ctx_.key_size) + "-" +
+                 mode_impl_->algorithm_name);
   }
-  virtual ~AES_ECB();
+  virtual ~AesEcb();
 
   ErrorStatus Process(const std::span<const std::uint8_t> input,
                       std::span<std::uint8_t> output) {
-    return mode_impl->Process(impl, ctx, input, output);
+    return mode_impl_->Process(impl_, ctx_, input, output);
   }
 
-  AES_ECB& operator<<(const op_mode::CipherMode& _mode) {
-    ctx.SetMode(_mode);
+  AesEcb& operator<<(const op_mode::CipherMode& mode) {
+    ctx_.SetMode(mode);
     return *this;
   }
 
  private:
-  std::shared_ptr<BlockCipherAlgorithm> impl;
-  std::shared_ptr<op_mode::OperationMode> mode_impl;
-  op_mode::ModeContext ctx;
+  std::shared_ptr<BlockCipherAlgorithm> impl_;
+  std::shared_ptr<op_mode::OperationMode> mode_impl_;
+  op_mode::ModeContext ctx_;
 };
 
 }  // namespace bedrock::cipher

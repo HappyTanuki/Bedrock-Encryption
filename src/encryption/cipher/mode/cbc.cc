@@ -1,5 +1,7 @@
 #include "encryption/cipher/mode/cbc.h"
 
+#include <algorithm>
+
 #include "encryption/util/helper.h"
 
 namespace bedrock::cipher::op_mode {
@@ -13,18 +15,18 @@ ErrorStatus CBC::Process(
     return ErrorStatus::kFailure;
   }
 
-  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::Encrypt) {
-    std::copy(input.begin(), input.end(), ctx.buffer.begin());
+  if (ctx.mode == bedrock::cipher::op_mode::CipherMode::kEncrypt) {
+    std::ranges::copy(input, ctx.buffer.begin());
     util::XorInplace(ctx.buffer, ctx.prev_vector);
     impl->Encrypt(ctx, ctx.buffer, ctx.prev_vector);
     ctx.buffer = ctx.prev_vector;
   } else {
     impl->Decrypt(ctx, input, ctx.buffer);
     util::XorInplace(ctx.buffer, ctx.prev_vector);
-    std::copy(input.begin(), input.end(), ctx.prev_vector.begin());
+    std::ranges::copy(input, ctx.prev_vector.begin());
   }
 
-  std::copy(ctx.buffer.begin(), ctx.buffer.end(), output.begin());
+  std::ranges::copy(ctx.buffer, output.begin());
 
   return ErrorStatus::kSuccess;
 }

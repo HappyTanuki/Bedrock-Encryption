@@ -18,8 +18,8 @@ enum class DRBGFunctionName {
 };
 
 struct NISTTestVariables {
-  std::unordered_map<std::string, std::uint32_t> integer = {};
-  std::unordered_map<std::string, std::vector<std::uint8_t>> binary = {};
+  std::unordered_map<std::string, std::uint32_t> integer;
+  std::unordered_map<std::string, std::vector<std::uint8_t>> binary;
 };
 
 struct NISTTestMonteSample {
@@ -27,35 +27,35 @@ struct NISTTestMonteSample {
 };
 
 struct NISTTestMonteStage {
-  std::queue<NISTTestMonteSample> samples = {};
+  std::queue<NISTTestMonteSample> samples;
   NISTTestVariables variable = {};
 };
 
 struct NISTTestDRBGHashState {
-  std::vector<std::uint8_t> V = {};
-  std::vector<std::uint8_t> C = {};
+  std::vector<std::uint8_t> v;
+  std::vector<std::uint8_t> c;
   std::uint64_t reseed_counter = 0;
 };
 
 struct NISTTestDRBGHashStep {
   DRBGFunctionName function_name;
-  std::vector<std::uint8_t> additional_input = {};
-  std::vector<std::uint8_t> entropy_input = {};
-  std::vector<std::uint8_t> nonce = {};
-  std::vector<std::uint8_t> personalization_string = {};
-  std::vector<std::uint8_t> returned_bits = {};
+  std::vector<std::uint8_t> additional_input;
+  std::vector<std::uint8_t> entropy_input;
+  std::vector<std::uint8_t> nonce;
+  std::vector<std::uint8_t> personalization_string;
+  std::vector<std::uint8_t> returned_bits;
   bool prediction_resistance_flag = false;
   NISTTestDRBGHashState internal_state = {};
 };
 
 struct NISTTestDRBGHashStage {
-  std::uint32_t ReturnedBitsLen = 0;
-  std::vector<NISTTestDRBGHashStep> steps = {};
+  std::uint32_t returned_bits_len = 0;
+  std::vector<NISTTestDRBGHashStep> steps;
 };
 
 struct NISTTestDRBGHashAlgorithm {
-  std::string hashALGORITHM_name;
-  std::vector<NISTTestDRBGHashStage> stages = {};
+  std::string hash_algorithm_name;
+  std::vector<NISTTestDRBGHashStage> stages;
 };
 
 ReturnStatusCode ParseHashVector(const std::filesystem::path& file_path,

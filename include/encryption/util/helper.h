@@ -10,21 +10,20 @@ namespace bedrock::util {
 
 std::vector<std::uint8_t> StrToBytes(const std::string& s);
 
-std::string BytesToHexStr(const std::span<const std::uint8_t> bytes);
+std::string BytesToHexStr(std::span<const std::uint8_t> bytes);
 
 std::vector<std::uint8_t> HexStrToBytes(const std::string& hex);
 template <std::uint32_t Size>
 std::array<std::uint8_t, Size> HexStrToBytes(const std::string& hex);
 
-std::vector<std::uint8_t> XorBytes(const std::span<const std::uint8_t> a,
-                                   const std::span<const std::uint8_t> b);
-void XorInplace(std::span<std::uint8_t> a,
-                const std::span<const std::uint8_t> b);
+std::vector<std::uint8_t> XorBytes(std::span<const std::uint8_t> a,
+                                   std::span<const std::uint8_t> b);
+void XorInplace(std::span<std::uint8_t> a, std::span<const std::uint8_t> b);
 
-void StandardIncrement(std::span<std::uint8_t> bytes, const std::size_t m);
+void StandardIncrement(std::span<std::uint8_t> bytes, std::size_t m);
 
 inline std::vector<std::uint8_t> MaskSeedlen(const std::vector<std::uint8_t>& v,
-                                             const std::size_t seedlen_bits);
+                                             std::size_t seedlen_bits);
 
 template <typename... Vectors>
 std::vector<std::uint8_t> AddByteVectors(const Vectors&... vecs);
@@ -48,24 +47,24 @@ std::array<std::uint8_t, Size> HexStrToBytes(const std::string& hex) {
 
 inline std::vector<std::uint8_t> MaskSeedlen(const std::vector<std::uint8_t>& v,
                                              const std::size_t seedlen_bits) {
-  std::size_t byteLen = (seedlen_bits + 7) / 8;
+  std::size_t byte_len = (seedlen_bits + 7) / 8;
   // 결과는 하위(byteLen) 바이트를 취함 (rightmost)
   std::vector<std::uint8_t> res;
-  if (v.size() <= byteLen) {
+  if (v.size() <= byte_len) {
     // v가 짧으면 좌측(상위) 0으로 패딩하여 길이 맞춤
-    res.assign(byteLen - v.size(), static_cast<std::uint8_t>(0));
+    res.assign(byte_len - v.size(), static_cast<std::uint8_t>(0));
     res.insert(res.end(), v.begin(), v.end());
   } else {
     // v가 길면 오른쪽 끝에서 byteLen 바이트를 복사
-    res.resize(byteLen);
-    auto offset = static_cast<std::ptrdiff_t>(v.size() - byteLen);
+    res.resize(byte_len);
+    auto offset = static_cast<std::ptrdiff_t>(v.size() - byte_len);
     std::copy(v.begin() + offset, v.end(), res.begin());
   }
   // seedlen이 바이트 정렬이 아닌 경우(즉 extraBits != 0) :
   // res[0]의 상위(왼쪽) 비트들만 남기고 나머지 비트는 0으로
-  std::size_t extraBits = seedlen_bits % 8;
-  if (extraBits != 0) {
-    uint8_t mask = static_cast<uint8_t>(0xFF << (8 - extraBits));
+  std::size_t extra_bits = seedlen_bits % 8;
+  if (extra_bits != 0) {
+    auto mask = static_cast<uint8_t>(0xFF << (8 - extra_bits));
     res[0] =
         static_cast<std::uint8_t>(static_cast<unsigned char>(res[0]) & mask);
   }
@@ -79,14 +78,16 @@ std::vector<std::uint8_t> AddByteVectors(const Vectors&... vecs) {
       std::span(vecs)...};
 
   // 결과 바이트 길이 = 가장 긴 입력 길이 (MSB-first 표현을 가정)
-  size_t byteLen = 0;
-  for (auto v : all) byteLen = (std::max)(byteLen, v.size());
+  size_t byte_len = 0;
+  for (auto v : all) {
+    byte_len = (std::max)(byte_len, v.size());
+  }
 
-  std::vector<std::uint8_t> result(byteLen);
+  std::vector<std::uint8_t> result(byte_len);
   unsigned int carry = 0;
 
   // i는 하위 바이트 오프셋: 0 => LSB (맨 끝)
-  for (size_t i = 0; i < byteLen; ++i) {
+  for (size_t i = 0; i < byte_len; ++i) {
     unsigned int sum = carry;
     for (auto v : all) {
       if (i < v.size()) {
@@ -98,7 +99,7 @@ std::vector<std::uint8_t> AddByteVectors(const Vectors&... vecs) {
     }
     // 결과는 MSB-first로 유지해야 하므로, LSB부터 채우되
     // 결과의 (byteLen-1 - i) 위치에 쓴다.
-    result[byteLen - 1 - i] = static_cast<std::uint8_t>(sum & 0xFF);
+    result[byte_len - 1 - i] = static_cast<std::uint8_t>(sum & 0xFF);
     carry = sum >> 8;
   }
 
