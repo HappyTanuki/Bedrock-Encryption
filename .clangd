@@ -1,2 +1,9 @@
 CompileFlags:
   CompilationDatabase: output/
+
+# clang-tidy 체크를 IDE intellisense에서 그대로 표시.
+# 실제 체크 목록 / 옵션은 .clang-tidy 에서 정의 — clangd가 그 파일을 자동 인식.
+Diagnostics:
+  ClangTidy:
+    # .clang-tidy의 Checks를 그대로 사용. 여기서 추가 제거하고 싶은 게 있으면 Remove에 적기.
+    Remove: []

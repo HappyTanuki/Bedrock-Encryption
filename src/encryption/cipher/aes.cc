@@ -36,13 +36,11 @@ static bool IntrinEnabled(IntrinSet target) {
 AESPicker::AESPicker() = default;
 
 std::shared_ptr<AESImpl> AESPicker::PickImpl() {
-#if HOST_ARCH_AMD64
   if (IntrinEnabled(IntrinSet::kAESNI) && IntrinEnabled(IntrinSet::kSSE2) &&
       IntrinEnabled(IntrinSet::kSSSE3)) {
     return std::make_shared<AES_NI>();
   }
-#endif
-    return std::make_shared<AES_SOFT>();
+  return std::make_shared<AES_SOFT>();
 }
 
 ErrorStatus AESCTXController::Create(std::shared_ptr<BlockCipherAlgorithm> impl,

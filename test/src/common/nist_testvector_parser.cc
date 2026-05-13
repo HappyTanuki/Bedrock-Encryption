@@ -1,4 +1,4 @@
-#include "encryption/util/nist_testvector_parser.h"
+#include "common/nist_testvector_parser.h"
 
 #include <fstream>
 #include <regex>

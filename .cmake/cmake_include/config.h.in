@@ -1,2 +1,1 @@
 #cmakedefine01 ENCRYPTION_USE_OPENSSL
-#cmakedefine01 HOST_ARCH_AMD64

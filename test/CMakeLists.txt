@@ -1,3 +1,18 @@
+# ============================================================
+# test_common: test 전용 헬퍼 (NIST test vector parser 등)
+# 라이브러리 export에는 포함되지 않습니다.
+# 라이브러리 본체(include/ + src/)와 동일한 layout으로 분리.
+# ============================================================
+add_library(test_common STATIC src/common/nist_testvector_parser.cc)
+target_include_directories(test_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(test_common PUBLIC ${PROJECT_NAME})
+if(MSVC)
+    target_compile_options(test_common PRIVATE /MP /utf-8)
+endif()
+if(NOT WIN32)
+    target_compile_options(test_common PRIVATE -maes -msse2 -mssse3 -fno-exceptions -fno-rtti)
+endif()
+
 file(GLOB TEST_SOURCES "*.cc")
 
 foreach(test_src ${TEST_SOURCES})
@@ -20,12 +35,12 @@ foreach(test_src ${TEST_SOURCES})
         )
     endif()
 
-    target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_name} PRIVATE test_common)
     if(NOT WIN32)
         target_compile_options(${test_name} PRIVATE -maes -msse2 -mssse3 -fno-exceptions -fno-rtti)
     endif()
     add_test(NAME ${test_name} COMMAND ${test_name})
-    set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endforeach()
 
 add_custom_target(copy_test_vectors ALL

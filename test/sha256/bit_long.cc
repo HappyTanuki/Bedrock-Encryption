@@ -1,6 +1,6 @@
 ﻿#include "algorithm/hash/sha.h"
 #include "precomp.h"
-#include "util/nist_testvector_parser.h"
+#include "common/nist_testvector_parser.h"
 
 namespace NISTTestVectorParser = bedrock::util::NISTTestVectorParser;
 
