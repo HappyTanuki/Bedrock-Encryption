@@ -1,9 +1,12 @@
 ﻿#pragma once
-#include <memory>
-#include <queue>
 #include <cassert>
 #include <cstring>
+#include <memory>
+#include <queue>
 #include <span>
+
+#include "common.h"
+
 
 namespace bedrock::hash {
 
@@ -264,4 +267,4 @@ inline std::array<std::byte, 32> SHA<256>::Digest() {
   return ret;
 }
 
-};
+};  // namespace bedrock::hash

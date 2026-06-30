@@ -6,7 +6,7 @@
       "name": "Windows-Build",
       "hidden": true,
       "inherits": [ "Paths" ],
-      "generator": "Ninja Multi-Config",
+      "generator": "Ninja",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
