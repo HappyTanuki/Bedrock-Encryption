@@ -37,8 +37,8 @@ class BlockCipherCTX : public Validatable {
   ::EVP_CIPHER* evp_cipher = nullptr;
 #endif
 
-  std::uint32_t nr = 0;
-  std::uint32_t nk = 0;
+  std::size_t nr = 0;
+  std::size_t nk = 0;
 
   std::span<std::array<std::uint8_t, 16>> EncRoundKeysView(
       std::size_t size = 0) {

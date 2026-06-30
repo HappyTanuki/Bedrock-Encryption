@@ -10,33 +10,6 @@
 
 namespace bedrock::cipher {
 
-struct AESMatrix {
- public:
-  constexpr AESMatrix() = default;
-  constexpr explicit AESMatrix(std::array<std::array<std::uint8_t, 4>, 4> value)
-      : value(value) {}
-  constexpr AESMatrix(
-      std::initializer_list<std::initializer_list<std::uint8_t>> init);
-  constexpr AESMatrix operator*(const std::uint8_t& scalar) const;
-  friend constexpr AESMatrix operator*(std::uint8_t lhs,
-                                       const AESMatrix& matrix);
-
-  constexpr AESMatrix operator*(const AESMatrix& matrix) const;
-  constexpr AESMatrix operator+(const AESMatrix& matrix) const;
-
-  std::array<std::uint8_t, 4>& operator[](std::size_t row) {
-    return value[row];
-  }
-  const std::array<std::uint8_t, 4>& operator[](std::size_t row) const {
-    return value[row];
-  }
-
-  int rows = 4;
-  int cols = 4;
-
-  std::array<std::array<std::uint8_t, 4>, 4> value = {};
-};
-
 static inline std::uint8_t GfXtime(std::uint8_t a) noexcept {
   uint8_t x = a;
   uint8_t hi = x & 0x80;
@@ -77,79 +50,14 @@ static inline uint8_t Rotl8(uint8_t x, int n) {
   return (x << n) | (x >> (8 - n));
 }
 
-constexpr AESMatrix::AESMatrix(
-    std::initializer_list<std::initializer_list<std::uint8_t>> init) {
-  int i = 0;
-  for (const auto& row : init) {
-    int j = 0;
-    for (const auto& val : row) {
-      value[i][j++] = val;
-    }
-    i++;
-  }
-}
-
-constexpr AESMatrix AESMatrix::operator*(const std::uint8_t& scalar) const {
-  AESMatrix result;
-
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      result.value[i][j] = GfMul(value[i][j], scalar);
-    }
-  }
-
-  return result;
-}
-constexpr AESMatrix operator*(std::uint8_t lhs, const AESMatrix& matrix) {
-  return matrix * lhs;
-}
-
-constexpr AESMatrix AESMatrix::operator*(const AESMatrix& matrix) const {
-  AESMatrix result;
-
-  if (cols != matrix.rows) {
-    return result;
-  }
-
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < matrix.cols; j++) {
-      for (int k = 0; k < cols; k++) {
-        result.value[i][j] =
-            result.value[i][j] ^ GfMul(value[i][k], matrix.value[k][j]);
-      }
-    }
-  }
-
-  result.rows = rows;
-  result.cols = matrix.cols;
-
-  return result;
-}
-
-constexpr AESMatrix AESMatrix::operator+(const AESMatrix& matrix) const {
-  AESMatrix result;
-
-  if (rows != matrix.rows || cols != matrix.cols) {
-    return result;
-  }
-
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      result.value[i][j] = value[i][j] ^ matrix.value[i][j];
-    }
-  }
-
-  return result;
-}
-
 AesSoft::~AesSoft() = default;
 
-inline void Transpose(std::span<const std::uint8_t> word,
+static inline void Transpose(std::span<const std::uint8_t> word,
                       std::span<std::uint8_t> out) {
   std::array<std::uint8_t, 16> tmp{};
 
-  for (int row = 0; row < 4; row++) {
-    for (int col = 0; col < 4; col++) {
+  for (std::size_t row = 0; row < 4; row++) {
+    for (std::size_t col = 0; col < 4; col++) {
       tmp[(row * 4) + col] = word[(col * 4) + row];
     }
   }
@@ -201,8 +109,8 @@ void AesSoft::DecryptImpl(BlockCipherCTX& ctx,
 ErrorStatus AesSoft::KeyExpantion(std::span<const std::uint8_t> key,
                                   BlockCipherCTX& ctx) const noexcept {
   std::uint16_t key_size = key.size() * 8;
-  std::uint32_t nk = key_size / 32;
-  std::uint32_t nr = nk + 6;
+  std::size_t nk = key_size / 32;
+  std::size_t nr = nk + 6;
 
   if (ctx.enc_round_keys.size() < nr + 1 ||
       ctx.dec_round_keys.size() < nr + 1) {
@@ -267,23 +175,11 @@ inline std::uint32_t AesSoft::RotWord(const std::uint32_t word) noexcept {
   return result;
 }
 
-//constexpr std::uint8_t AES_SOFT::Rcon(const std::uint32_t i) noexcept {
-//  if (kRcon[i] != static_cast<std::uint8_t>(0x00)) return kRcon[i];
-//
-//  for (int j = Rcon_memo_index + 1; j <= i; j++) {
-//    Rcon_memo[j] = gf_mul(Rcon_memo[j - 1], static_cast<std::uint8_t>(0x02));
-//  }
-//
-//  Rcon_memo_index = i;
-//
-//  return Rcon_memo[i];
-//}
-
 constexpr void AesSoft::AddRoundKey(
     std::span<std::uint8_t> state,
     std::span<const std::uint8_t> round_key) noexcept {
-  for (int row = 0; row < 4; row++) {
-    for (int col = 0; col < 4; col++) {
+  for (std::size_t row = 0; row < 4; row++) {
+    for (std::size_t col = 0; col < 4; col++) {
       state[(row * 4) + col] =
           state[(row * 4) + col] ^ round_key[(col * 4) + row];
     }
@@ -291,7 +187,7 @@ constexpr void AesSoft::AddRoundKey(
 }
 
 inline void AesSoft::InvMixColumns(std::span<std::uint8_t> state) noexcept {
-  for (int c = 0; c < 4; ++c) {
+  for (std::size_t c = 0; c < 4; ++c) {
     uint8_t s0 = state[(0 * 4) + c];
     uint8_t s1 = state[(1 * 4) + c];
     uint8_t s2 = state[(2 * 4) + c];
@@ -339,8 +235,8 @@ inline void AesSoft::InvMixColumns(std::span<std::uint8_t> state) noexcept {
 inline void AesSoft::InvShiftRows(std::span<std::uint8_t> state) noexcept {
   std::array<std::array<std::uint8_t, 4>, 4> shifted{};
 
-  for (int row = 0; row < 4; row++) {
-    for (int col = 0; col < 4; col++) {
+  for (std::size_t row = 0; row < 4; row++) {
+    for (std::size_t col = 0; col < 4; col++) {
       shifted[row][(col + row) % 4] = state[(row * 4) + col];
     }
   }
@@ -354,30 +250,9 @@ constexpr void AesSoft::InvSubBytes(std::span<std::uint8_t> state) noexcept {
   }
 }
 
-// constexpr void AES_SOFT::MixColumns(std::span<std::uint8_t> state) noexcept {
-//   AESMatrix a = {{0x02, 0x03, 0x01, 0x01},
-//                  {0x01, 0x02, 0x03, 0x01},
-//                  {0x01, 0x01, 0x02, 0x03},
-//                  {0x03, 0x01, 0x01, 0x02}};
-//   AESMatrix column;
-//   column.cols = 1;
-
-//   for (int col = 0; col < 4; col++) {
-//     for (int row = 0; row < 4; row++) {
-//       column[row][0] = state[row * 4 + col];
-//     }
-
-//     column = a * column;
-
-//     for (int row = 0; row < 4; row++) {
-//       state[row * 4 + col] = column[row][0];
-//     }
-//   }
-// }
-
 constexpr void AesSoft::MixColumns(std::span<std::uint8_t> state) noexcept {
   // 각 column은 독립적으로 처리됨
-  for (int c = 0; c < 4; ++c) {
+  for (std::size_t c = 0; c < 4; ++c) {
     uint8_t s0 = state[(0 * 4) + c];
     uint8_t s1 = state[(1 * 4) + c];
     uint8_t s2 = state[(2 * 4) + c];
@@ -402,8 +277,8 @@ constexpr void AesSoft::MixColumns(std::span<std::uint8_t> state) noexcept {
 inline void AesSoft::ShiftRows(std::span<std::uint8_t> state) noexcept {
   std::array<std::uint8_t, 16> shifted{};
 
-  for (int row = 0; row < 4; row++) {
-    for (int col = 0; col < 4; col++) {
+  for (std::size_t row = 0; row < 4; row++) {
+    for (std::size_t col = 0; col < 4; col++) {
       shifted[(row * 4) + col] = state[(row * 4) + ((col + row) % 4)];
     }
   }
@@ -416,11 +291,6 @@ constexpr void AesSoft::SubBytes(std::span<std::uint8_t> state) noexcept {
     state[i] = SBox(state[i]);
   }
 }
-
-//std::array<std::uint8_t, 14> AES_SOFT::Rcon_memo = {
-//    static_cast<std::uint8_t>(0x00), static_cast<std::uint8_t>(0x01),
-//    static_cast<std::uint8_t>(0x02)};
-//int AES_SOFT::Rcon_memo_index = 1;
 
 std::uint8_t AesSoft::SBox(std::uint8_t x) {
   uint8_t y = GfInv(x);
